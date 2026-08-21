@@ -1,529 +1,89 @@
-# Task Manager
+# Java Learning Project
 
-A simple Java task management application built from scratch without Maven, Gradle, Spring, or other build tools.
+A simple Java project built from scratch **without Maven, Gradle, Spring, or any other build tool** — everything compiles with plain `javac`.
 
-The project is intended as a learning project for understanding **Java fundamentals**, including classes, packages, enums, collections, constructors, encapsulation, and manual compilation.
+It is intended as a hands-on learning project for understanding **Java fundamentals**: classes, packages, enums, collections, constructors, encapsulation, and manual compilation. The next milestone is turning the Room Manager into a web backend built with only the JDK.
 
-## Project Goals
+## Modules
 
-This project is mainly for learning how Java applications are structured and executed.
-
-It currently focuses on:
-
-- Java classes and objects
-- Packages and imports
-- Constructors
-- Access modifiers
-- Encapsulation
-- Interfaces and implementations
-- `Map` and `HashMap`
-- `ArrayList`
-- Java `enum`
-- Manual compilation with `javac`
-- Running Java programs with `java`
-- Basic object management
-
-No external framework or build system is used.
-
----
+| Module | Package | Status |
+|---|---|---|
+| Task Manager | `com.example.taskmanager` | Console app, complete |
+| Room Manager | `com.example.roommanager` | Domain model complete → web backend in progress |
 
 ## Project Structure
 
 ```text
-task-manager/
+basic-watch/
 ├── src/
-│   └── com/
-│       └── example/
-│           └── taskmanager/
-│               ├── Main.java
-│               ├── TaskManager.java
-│               │
-│               └── task/
-│                   ├── Task.java
-│                   └── TaskPriority.java
+│   └── com/example/
+│       ├── taskmanager/
+│       │   ├── Main.java              # entry point, manual testing
+│       │   ├── TaskManager.java       # manages tasks
+│       │   └── task/
+│       │       ├── Task.java          # id, name, completed, priority
+│       │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
+│       │
+│       └── roommanager/
+│           ├── RoomManager.java       # registry of rooms
+│           ├── Room.java              # members + host management
+│           └── User.java              # participant record
 │
-└── out/
+├── web/                               # (planned) static frontend
+└── out/                               # compiled .class files
 ```
 
-### `Main`
+## Task Manager
 
-Entry point of the application.
+A console application for managing tasks.
 
-Used to manually test the functionality of the task manager.
+- `Task` — data holder: ID, name, completion status, priority (`TaskPriority` enum: `LOW(1)`, `MEDIUM(2)`, `HIGH(3)`).
+- `TaskManager` — stores tasks in `Map<Integer, Task>` (`HashMap`) with O(1) lookup by ID; supports add, search by ID/name, list, complete/uncomplete, remove.
+- `Main` — entry point used to exercise the manager manually.
 
-### `TaskManager`
+## Room Manager
 
-Responsible for managing tasks.
+A model of chat-room-style membership:
 
-Main responsibilities:
+- `User` — participant with an immutable ID and a name.
+- `Room` — holds its members in `Map<Integer, User>`, enforces unique member IDs, requires the host to be a member, and automatically reassigns the host when they leave.
+- `RoomManager` — top-level registry of rooms (`Map<Integer, Room>`); routes join/leave actions to the right room.
 
-- Add tasks
-- Search tasks by ID
-- Search tasks by name
-- Remove tasks
-- List all tasks
-- Complete tasks
-- Uncomplete tasks
+### Next step: web backend
 
-### `Task`
+The room manager is being turned into a simple web application using only the JDK's built-in `com.sun.net.httpserver` — no frameworks. The roadmap: HTTP basics → first server → static files → REST API (JSON) → simple browser frontend. The domain classes stay framework-free; a new `web/` package will handle HTTP on top of them.
 
-Represents an individual task.
+## Compilation & Running
 
-A task currently contains:
-
-- ID
-- Name
-- Completion status
-- Priority
-
-### `TaskPriority`
-
-An enum representing task priority:
+No build system is used intentionally — the workflow is:
 
 ```text
-LOW
-MEDIUM
-HIGH
+src/*.java → javac → out/*.class → java → JVM
 ```
 
-Each priority has an associated numeric value:
-
-```text
-LOW    → 1
-MEDIUM → 2
-HIGH   → 3
-```
-
----
-
-## Task Storage
-
-Tasks are stored using:
-
-```java
-Map<Integer, Task>
-```
-
-with:
-
-```java
-HashMap<Integer, Task>
-```
-
-as the implementation.
-
-The task ID is used as the map key:
-
-```text
-ID → Task
-```
-
-For example:
-
-```text
-1 → Learn Java
-2 → Learn HashMap
-3 → Build Task Manager
-```
-
-This allows tasks to be retrieved directly by ID:
-
-```java
-Task task = tasks.get(2);
-```
-
-Average-case lookup using `HashMap` is `O(1)`.
-
----
-
-## Example
-
-Creating a task:
-
-```java
-Task task = new Task(
-    1,
-    "Learn Java",
-    TaskPriority.HIGH,
-    false
-);
-```
-
-Adding it to the manager:
-
-```java
-manager.addTask(task);
-```
-
-Searching by ID:
-
-```java
-Task result = manager.search(1);
-```
-
-Completing a task:
-
-```java
-manager.completeTask(1);
-```
-
-Removing a task:
-
-```java
-manager.removeTask(1);
-```
-
-Searching by name:
-
-```java
-List<Task> results = manager.search("java");
-```
-
----
-
-## Compilation
-
-This project intentionally does not use Maven or Gradle.
-
-Compile the project manually using `javac`.
-
-From the project root:
+Compile from the project root:
 
 ```bash
 javac -d out $(find src -name "*.java")
 ```
 
-### What does this do?
-
-```text
-src/
- ↓
-javac
- ↓
-out/
-```
-
-The `-d out` option tells Java to put compiled `.class` files inside the `out` directory.
-
-Because the project uses packages, the compiler creates the corresponding directory structure automatically.
-
-For example:
-
-```text
-src/com/example/taskmanager/TaskManager.java
-```
-
-becomes:
-
-```text
-out/com/example/taskmanager/TaskManager.class
-```
-
----
-
-## Running
-
-After compilation:
+Run the task manager:
 
 ```bash
 java -cp out com.example.taskmanager.Main
 ```
 
-The `-cp` option specifies the **classpath**.
+Clean:
 
-Here:
-
-```text
-out/
+```bash
+rm -rf out && mkdir out
 ```
-
-is the root of the compiled package hierarchy.
-
-The fully qualified name of the main class is:
-
-```text
-com.example.taskmanager.Main
-```
-
----
-
-## Packages
-
-The project uses packages to organize related classes.
-
-For example:
-
-```java
-package com.example.taskmanager;
-```
-
-and:
-
-```java
-package com.example.taskmanager.task;
-```
-
-The package structure corresponds to the directory structure:
-
-```text
-com.example.taskmanager
-        ↓
-com/example/taskmanager/
-
-com.example.taskmanager.task
-        ↓
-com/example/taskmanager/task/
-```
-
-Classes from another package can be imported:
-
-```java
-import com.example.taskmanager.task.Task;
-import com.example.taskmanager.task.TaskPriority;
-```
-
-A class or enum that needs to be accessed from another package must be declared `public`.
-
-For example:
-
-```java
-public enum TaskPriority {
-    LOW(1),
-    MEDIUM(2),
-    HIGH(3);
-}
-```
-
----
-
-## Current Features
-
-### Add Task
-
-Adds a task using its ID as the key.
-
-```java
-manager.addTask(task);
-```
-
-Duplicate IDs are rejected.
-
-```text
-ID 1 → Task A
-
-Attempt to add another task with ID 1
-        ↓
-Rejected
-```
-
-### Search by ID
-
-```java
-manager.search(1);
-```
-
-Uses the `HashMap` key for direct lookup.
-
-### Search by Name
-
-```java
-manager.search("java");
-```
-
-Returns tasks whose names contain the search string.
-
-### List Tasks
-
-```java
-manager.listTasks();
-```
-
-Returns all tasks currently stored by the manager.
-
-### Complete Task
-
-```java
-manager.completeTask(1);
-```
-
-Changes:
-
-```text
-completed = false
-```
-
-to:
-
-```text
-completed = true
-```
-
-### Uncomplete Task
-
-```java
-manager.uncompleteTask(1);
-```
-
-Changes:
-
-```text
-completed = true
-```
-
-to:
-
-```text
-completed = false
-```
-
-### Remove Task
-
-```java
-manager.removeTask(1);
-```
-
-Removes the task from the `HashMap`.
-
----
-
-## Design
-
-The current design separates the responsibility of representing a task from managing tasks.
-
-```text
-Task
- │
- ├── id
- ├── name
- ├── priority
- └── completed
-
-
-TaskManager
- │
- ├── Map<Integer, Task>
- │
- ├── addTask()
- ├── search()
- ├── removeTask()
- ├── listTasks()
- ├── completeTask()
- └── uncompleteTask()
-```
-
-The `Task` class represents data and behavior belonging to an individual task.
-
-The `TaskManager` manages the collection of tasks.
-
----
-
-## Why `Map<Integer, Task>`?
-
-A `Map` represents a relationship between a key and a value:
-
-```text
-Map<Key, Value>
-```
-
-In this project:
-
-```text
-Map<Integer, Task>
-     │       │
-     │       └── Task
-     └────────── ID
-```
-
-This is preferable to a `Set<Task>` because the main lookup requirement is:
-
-```text
-Task ID → Task
-```
-
-A `HashMap` provides efficient average-case lookup by key.
-
----
-
-## Learning Approach
-
-The project is intentionally being developed without a build system.
-
-The current workflow is:
-
-```text
-Write .java files
-      ↓
-javac
-      ↓
-.class files
-      ↓
-java
-      ↓
-JVM
-```
-
-The goal is to understand what Java build tools such as Maven eventually automate.
-
-Future topics may include:
-
-- File persistence
-- Exception handling
-- Interfaces
-- Abstract classes
-- Generics
-- Java Collections
-- Streams
-- Unit testing
-- JAR files
-- Classpath management
-- Manual dependency management
-- Maven
-- Eventually Spring/Spring Boot
-
-Maven and Spring will be introduced only after the underlying Java concepts are understood.
-
----
 
 ## Requirements
 
-- Java Development Kit (JDK)
+- JDK (check with `java --version` and `javac --version`)
 - A text editor or IDE
-- Terminal
+- A terminal
+- For the web phase: `curl` and any modern browser
 
-Check the installation with:
-
-```bash
-java --version
-javac --version
-```
-
-No Maven or Gradle is currently required.
-
----
-
-## Running the Project
-
-Compile:
-
-```bash
-javac -d out $(find src -name "*.java")
-```
-
-Run:
-
-```bash
-java -cp out com.example.taskmanager.Main
-```
-
-Clean compiled files:
-
-```bash
-rm -rf out
-```
-
-Then compile again:
-
-```bash
-mkdir out
-javac -d out $(find src -name "*.java")
-```
+Maven and Spring Boot will be introduced only after the underlying concepts are understood by hand.
