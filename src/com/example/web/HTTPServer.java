@@ -1,16 +1,8 @@
 package com.example.web;
 
 import com.example.web.configuration.ConfigurationManager;
-import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 
 import com.example.web.configuration.Configuration;
 
@@ -29,13 +21,19 @@ public class HTTPServer {
 
         int port = config.getPort();
         System.out.println("Creating socket with port " + port + "...");
+        ServerSocket server = null;
         try {
-            ServerSocket server = new ServerSocket(port);
+            server = new ServerSocket(port);
             RequestHandler handler = new RequestHandler(server);
             handler.begin();
-            server.close();
         } catch (IOException e) {
             System.out.println("Exception: " + e.toString());
+        } finally {
+            try {
+                System.out.println("Closing server...");
+                server.close();
+            } catch (IOException e) {
+            }
         }
     }
 }
