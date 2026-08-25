@@ -1,36 +1,49 @@
 # Java Learning Project
 
-A simple Java project built from scratch **without Maven, Gradle, Spring, or any other build tool** — everything compiles with plain `javac`.
+A simple Java project built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; the only external dependency is Jackson, kept as jars in `lib/`.
 
-It is intended as a hands-on learning project for understanding **Java fundamentals**: classes, packages, enums, collections, constructors, encapsulation, and manual compilation. The next milestone is turning the Room Manager into a web backend built with only the JDK.
+It is intended as a hands-on learning project for understanding **Java fundamentals** (classes, packages, enums, collections, constructors, encapsulation, manual compilation) and how an HTTP server really works: the web server is written by hand on a raw `ServerSocket`, one thread per connection, instead of using the JDK's built-in `HttpServer`.
 
 ## Modules
 
 | Module | Package | Status |
 |---|---|---|
 | Task Manager | `com.example.taskmanager` | Console app, complete |
-| Room Manager | `com.example.roommanager` | Domain model complete → web backend in progress |
+| Room Manager | `com.example.roommanager` | Domain model complete → will back the REST API |
+| Web Server | `com.example.web` | In progress: accept loop, thread-per-connection, config loading |
+| JSON | `com.example.json` | Thin wrapper around Jackson (parse / stringify) |
 
 ## Project Structure
 
 ```text
 basic-watch/
 ├── src/
-│   └── com/example/
-│       ├── taskmanager/
-│       │   ├── Main.java              # entry point, manual testing
-│       │   ├── TaskManager.java       # manages tasks
-│       │   └── task/
-│       │       ├── Task.java          # id, name, completed, priority
-│       │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
-│       │
-│       └── roommanager/
-│           ├── RoomManager.java       # registry of rooms
-│           ├── Room.java              # members + host management
-│           └── User.java              # participant record
-│
-├── web/                               # (planned) static frontend
-└── out/                               # compiled .class files
+│   ├── com/
+│   │   ├── example/
+│   │   │   ├── json/
+│   │   │   │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
+│   │   │   ├── roommanager/
+│   │   │   │   ├── RoomManager.java    # registry of rooms
+│   │   │   │   ├── Room.java           # members + host management
+│   │   │   │   └── User.java           # participant record
+│   │   │   ├── taskmanager/
+│   │   │   │   ├── Main.java           # entry point, manual testing
+│   │   │   │   ├── TaskManager.java    # manages tasks
+│   │   │   │   └── task/
+│   │   │   │       ├── Task.java       # id, name, completed, priority
+│   │   │   │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
+│   │   │   └── web/
+│   │   │       ├── Main.java           # placeholder stub (unused)
+│   │   │       ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
+│   │   │       ├── RequestHandler.java # accept loop, one thread per connection
+│   │   │       ├── configuration/      # config.json loading (ConfigurationManager)
+│   │   │       └── multithreading/
+│   │   │           └── HTTPSender.java # reads request head, writes response per socket
+│   │   └── resources/
+│   │       └── config.json             # server config: port, webRoot
+├── lib/                                # Jackson jars — required on the classpath
+├── web/                                # (planned) static frontend
+└── out/                                # compiled .class files
 ```
 
 ## Task Manager
@@ -49,41 +62,56 @@ A model of chat-room-style membership:
 - `Room` — holds its members in `Map<Integer, User>`, enforces unique member IDs, requires the host to be a member, and automatically reassigns the host when they leave.
 - `RoomManager` — top-level registry of rooms (`Map<Integer, Room>`); routes join/leave actions to the right room.
 
-### Next step: web backend
+## Web Server (in progress)
 
-The room manager is being turned into a simple web application using only the JDK's built-in `com.sun.net.httpserver` — no frameworks. The roadmap: HTTP basics → first server → static files → REST API (JSON) → simple browser frontend. The domain classes stay framework-free; a new `web/` package will handle HTTP on top of them.
+The server is written by hand on raw sockets — no framework, not even `com.sun.net.httpserver`:
+
+- `HTTPServer` (entry point) loads `src/com/resources/config.json` via `ConfigurationManager`/`Json`, then opens a `ServerSocket` on the configured port.
+- `RequestHandler.begin()` accepts connections in a loop and hands each socket to an `HTTPSender` runnable on its own thread.
+- `HTTPSender` reads the request head line-by-line (a blank line ends the headers) and replies with a hard-coded HTML page.
+
+Roadmap: request parsing → routing → static files from `webRoot` → REST API backed by `roommanager` → simple browser frontend.
 
 ## Compilation & Running
 
 No build system is used intentionally — the workflow is:
 
 ```text
-src/*.java → javac → out/*.class → java → JVM
+lib/*.jar + src/*.java → javac → out/*.class → java → JVM
 ```
 
-Compile from the project root:
+Run all commands from the project root. Jackson lives in `lib/`, so every `javac`/`java` call needs `-cp 'lib/*'` (plus `out` when running):
 
 ```bash
-javac -d out $(find src -name "*.java")
+# compile
+javac -d out -cp 'lib/*' $(find src -name "*.java")
+
+# clean
+rm -rf out && mkdir out
 ```
 
 Run the task manager:
 
 ```bash
-java -cp out com.example.taskmanager.Main
+java -cp 'out:lib/*' com.example.taskmanager.Main
 ```
 
-Clean:
+Run the web server (must be launched from the repo root — it loads `src/com/resources/config.json` by relative path):
 
 ```bash
-rm -rf out && mkdir out
+java -cp 'out:lib/*' com.example.web.HTTPServer
+
+# from another terminal:
+curl -v http://localhost:8080
 ```
+
+Note: `RequestHandler` currently stops accepting after a handful of connections (learning demo), so restart the server once the accept loop exits.
 
 ## Requirements
 
 - JDK (check with `java --version` and `javac --version`)
-- A text editor or IDE
-- A terminal
-- For the web phase: `curl` and any modern browser
+- Jackson jars in `lib/`: `jackson-core`, `jackson-databind`, `jackson-annotations`
+- A text editor or IDE and a terminal
+- `curl` and any modern browser for testing the server
 
 Maven and Spring Boot will be introduced only after the underlying concepts are understood by hand.
