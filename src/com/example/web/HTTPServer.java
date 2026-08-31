@@ -23,10 +23,13 @@ public class HTTPServer {
         System.out.println("Creating socket with port " + port + "...");
         ServerSocket server = null;
         try {
-            server = new ServerSocket(port);
-            RequestHandler handler = new RequestHandler(server);
-            handler.begin();
+            RequestHandler requestHandler = new RequestHandler(config);
+            Thread requestHandlerThread = new Thread(requestHandler);
+            requestHandlerThread.start();
+            requestHandlerThread.join();
         } catch (IOException e) {
+            System.out.println("Exception: " + e.toString());
+        } catch (InterruptedException e) {
             System.out.println("Exception: " + e.toString());
         } finally {
             try {
