@@ -1,6 +1,6 @@
 # Java Learning Project
 
-A simple Java project built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; the only external dependency is Jackson, kept as jars in `lib/`.
+A simple Java project built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; external dependencies (Jackson, JUnit, SLF4J/Logback) are kept as jars in `lib/`.
 
 It is intended as a hands-on learning project for understanding **Java fundamentals** (classes, packages, enums, collections, constructors, encapsulation, manual compilation) and how an HTTP server really works: the web server is written by hand on a raw `ServerSocket`, one thread per connection, instead of using the JDK's built-in `HttpServer`.
 
@@ -18,30 +18,35 @@ It is intended as a hands-on learning project for understanding **Java fundament
 ```text
 basic-watch/
 ├── src/
-│   ├── com/
-│   │   ├── example/
-│   │   │   ├── json/
-│   │   │   │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
-│   │   │   ├── roommanager/
-│   │   │   │   ├── RoomManager.java    # registry of rooms
-│   │   │   │   ├── Room.java           # members + host management
-│   │   │   │   └── User.java           # participant record
-│   │   │   ├── taskmanager/
-│   │   │   │   ├── Main.java           # entry point, manual testing
-│   │   │   │   ├── TaskManager.java    # manages tasks
-│   │   │   │   └── task/
-│   │   │   │       ├── Task.java       # id, name, completed, priority
-│   │   │   │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
-│   │   │   └── web/
-│   │   │       ├── Main.java           # placeholder stub (unused)
-│   │   │       ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
-│   │   │       ├── RequestHandler.java # accept loop, one thread per connection
-│   │   │       ├── configuration/      # config.json loading (ConfigurationManager)
-│   │   │       └── multithreading/
-│   │   │           └── HTTPSender.java # reads request head, writes response per socket
-│   │   └── resources/
-│   │       └── config.json             # server config: port, webRoot
-├── lib/                                # Jackson jars — required on the classpath
+│   └── com/
+│       └── example/
+│           ├── json/
+│           │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
+│           ├── roommanager/
+│           │   ├── RoomManager.java    # registry of rooms
+│           │   ├── Room.java           # members + host management
+│           │   └── User.java           # participant record
+│           ├── taskmanager/
+│           │   ├── Main.java           # entry point, manual testing
+│           │   ├── TaskManager.java    # manages tasks
+│           │   └── task/
+│           │       ├── Task.java       # id, name, completed, priority
+│           │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
+│           └── web/
+│               ├── Main.java           # placeholder stub (unused)
+│               ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
+│               ├── RequestHandler.java # accept loop, one thread per connection
+│               ├── configuration/      # config.json loading (ConfigurationManager)
+│               └── http/
+│                   ├── HTTPParser.java
+│                   └── HTTPWorker.java
+├── test/
+│   └── com/
+│       └── example/
+│           └── web/
+│               └── http/
+│                   └── HTTPParserTest.java
+├── lib/                                # Jackson, JUnit, SLF4J/Logback jars
 ├── web/                                # (planned) static frontend
 └── out/                                # compiled .class files
 ```
@@ -77,14 +82,14 @@ Roadmap: request parsing → routing → static files from `webRoot` → REST AP
 No build system is used intentionally — the workflow is:
 
 ```text
-lib/*.jar + src/*.java → javac → out/*.class → java → JVM
+lib/*.jar + src/*.java + test/*.java → javac → out/*.class → java → JVM
 ```
 
-Run all commands from the project root. Jackson lives in `lib/`, so every `javac`/`java` call needs `-cp 'lib/*'` (plus `out` when running):
+Run all commands from the project root. Dependencies live in `lib/`, so every `javac`/`java` call needs `-cp 'lib/*'` (plus `out` when running):
 
 ```bash
-# compile
-javac -d out -cp 'lib/*' $(find src -name "*.java")
+# compile source + tests
+javac -d out -cp 'lib/*' $(find src test -name "*.java")
 
 # clean
 rm -rf out && mkdir out
@@ -107,10 +112,32 @@ curl -v http://localhost:8080
 
 Note: `RequestHandler` currently stops accepting after a handful of connections (learning demo), so restart the server once the accept loop exits.
 
+### Testing
+
+Tests use JUnit 6 (via `junit-platform-console-standalone` in `lib/`). To run:
+
+```bash
+# compile source + tests
+javac -d out -cp 'lib/*' $(find src test -name "*.java")
+
+# run all tests
+java -jar lib/junit-platform-console-standalone-6.1.3.jar execute \
+  --class-path "out:$(ls lib/*.jar | tr '\n' ':')" \
+  --scan-class-path out
+```
+
+To run a specific test class:
+
+```bash
+java -jar lib/junit-platform-console-standalone-6.1.3.jar execute \
+  --class-path "out:$(ls lib/*.jar | tr '\n' ':')" \
+  --select-class com.example.web.http.HTTPParserTest
+```
+
 ## Requirements
 
 - JDK (check with `java --version` and `javac --version`)
-- Jackson jars in `lib/`: `jackson-core`, `jackson-databind`, `jackson-annotations`
+- Jars in `lib/`: `jackson-core`, `jackson-databind`, `jackson-annotations`, `junit-platform-console-standalone`, `slf4j-api`, `logback-classic`, `logback-core`
 - A text editor or IDE and a terminal
 - `curl` and any modern browser for testing the server
 

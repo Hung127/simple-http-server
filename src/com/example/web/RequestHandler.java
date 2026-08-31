@@ -5,7 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import com.example.web.configuration.Configuration;
 
-import com.example.web.multithreading.HTTPWorker;
+import com.example.web.http.HTTPWorker;
 
 public class RequestHandler implements Runnable {
     private final ServerSocket server;
@@ -18,6 +18,7 @@ public class RequestHandler implements Runnable {
         }
         this.config = config;
         int port = this.config.getPort();
+        System.out.println("Creating socket with port " + port + "...");
         this.server = new ServerSocket(port);
     }
 
@@ -37,6 +38,12 @@ public class RequestHandler implements Runnable {
                 }
             }
         } catch (IOException e) {
+        } finally {
+            try {
+                this.server.close();
+            } catch (IOException e) {
+                // do nothing
+            }
         }
     }
 }

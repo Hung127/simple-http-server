@@ -1,4 +1,4 @@
-package com.example.web.multithreading;
+package com.example.web.http;
 
 import java.io.OutputStream;
 import java.net.Socket;
@@ -72,7 +72,11 @@ public class HTTPWorker implements Runnable {
     @Override
     public void run() {
         try {
-            this.readRequest();
+            // this.readRequest();
+            int _byte;
+            while ((_byte = this.inStream.read()) >= 0) {
+                System.out.print((char) _byte);
+            }
         } catch (IOException e) {
             System.out.println("Cannot read request message");
         }
@@ -95,7 +99,7 @@ public class HTTPWorker implements Runnable {
 
             }
             try {
-                socket.close();
+                this.socket.close();
             } catch (IOException e) {
             }
         }
