@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 import java.io.IOException;
 
-public class HTTPSender implements Runnable {
+public class HTTPWorker implements Runnable {
     private final String CRLF = "\r\n";
     private final OutputStream outStream;
     private final InputStream inStream;
@@ -63,7 +63,7 @@ public class HTTPSender implements Runnable {
         return header + body;
     }
 
-    public HTTPSender(Socket socket) throws IOException {
+    public HTTPWorker(Socket socket) throws IOException {
         this.socket = socket;
         this.inStream = socket.getInputStream();
         this.outStream = socket.getOutputStream();
