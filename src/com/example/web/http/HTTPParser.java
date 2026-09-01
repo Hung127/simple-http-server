@@ -32,8 +32,14 @@ public class HTTPParser {
 
                         String version = processingBuffer.toString();
                         LOGGER.debug("Processing: " + version);
-                        processingBuffer.setLength(0); // clear
-                        request.setVersion(version);
+                        processingBuffer.setLength(0); // clear builder
+                        try {
+                            request.setHTTPVersion(version);
+                        } catch (BadHTTPVersionException e) {
+                            throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                        } catch (HTTPParsingException e) { // 505 http version not supported
+                            throw e;
+                        }
                         return;
                     } else { // have CR but no LF
                         throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -44,7 +50,7 @@ public class HTTPParser {
                 if (_byte == HTTPParser.SP) {
                     String currentObj = processingBuffer.toString();
                     LOGGER.debug("Processing: " + currentObj);
-                    processingBuffer.setLength(0); // clear
+                    processingBuffer.setLength(0); // clear builder
 
                     if (!gotMethod) {
                         request.setMethod(currentObj);
