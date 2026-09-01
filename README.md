@@ -1,81 +1,74 @@
-# Java Learning Project
+# Simple HTTP Server
 
-A simple Java project built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; external dependencies (Jackson, JUnit, SLF4J/Logback) are kept as jars in `lib/`.
+A simple HTTP server built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; external dependencies (Jackson, JUnit, SLF4J/Logback) are kept as jars in `lib/`.
 
-It is intended as a hands-on learning project for understanding **Java fundamentals** (classes, packages, enums, collections, constructors, encapsulation, manual compilation) and how an HTTP server really works: the web server is written by hand on a raw `ServerSocket`, one thread per connection, instead of using the JDK's built-in `HttpServer`.
+It is intended as a hands-on learning project for understanding how an HTTP server really works: the server is written by hand on a raw `ServerSocket`, one thread per connection, instead of using the JDK's built-in `HttpServer`.
 
 ## Modules
 
 | Module | Package | Status |
 |---|---|---|
-| Task Manager | `com.example.taskmanager` | Console app, complete |
-| Room Manager | `com.example.roommanager` | Domain model complete → will back the REST API |
-| Web Server | `com.example.web` | In progress: accept loop, thread-per-connection, config loading |
-| JSON | `com.example.json` | Thin wrapper around Jackson (parse / stringify) |
+| Web Server | `com.example.web` | In progress: accept loop, thread-per-connection, config loading, HTTP parsing, static file serving |
+| JSON | `com.example.json` | Thin wrapper around Jackson (parse / stringify), used for config loading |
 
 ## Project Structure
 
 ```text
 basic-watch/
 ├── src/
-│   └── com/
-│       └── example/
-│           ├── json/
-│           │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
-│           ├── roommanager/
-│           │   ├── RoomManager.java    # registry of rooms
-│           │   ├── Room.java           # members + host management
-│           │   └── User.java           # participant record
-│           ├── taskmanager/
-│           │   ├── Main.java           # entry point, manual testing
-│           │   ├── TaskManager.java    # manages tasks
-│           │   └── task/
-│           │       ├── Task.java       # id, name, completed, priority
-│           │       └── TaskPriority.java  # enum LOW / MEDIUM / HIGH
-│           └── web/
-│               ├── Main.java           # placeholder stub (unused)
-│               ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
-│               ├── RequestHandler.java # accept loop, one thread per connection
-│               ├── configuration/      # config.json loading (ConfigurationManager)
-│               └── http/
-│                   ├── HTTPParser.java
-│                   └── HTTPWorker.java
+│   ├── com/
+│   │   ├── resources/
+│   │   │   ├── config.json             # runtime config (port, webRoot)
+│   │   │   └── web/
+│   │   │       └── index.html          # served web root (static files)
+│   │   └── example/
+│   │       ├── json/
+│   │       │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
+│   │       └── web/
+│   │           ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
+│   │           ├── RequestHandler.java # accept loop, one thread per connection
+│   │           ├── configuration/      # config.json loading (ConfigurationManager, Configuration, HTTPConfigurationException)
+│   │           ├── http/               # HTTP parsing
+│   │           │   ├── HTTPParser.java             # request-line + header parsing
+│   │           │   ├── HTTPRequest.java            # parsed request data
+│   │           │   ├── HTTPMessage.java            # shared message base
+│   │           │   ├── HTTPMethod.java             # enum GET / POST / ...
+│   │           │   ├── HTTPVersion.java            # enum + compatibility resolution
+│   │           │   ├── HTTPStatusCode.java         # status code enum
+│   │           │   ├── HTTPWorker.java             # per-connection response thread
+│   │           │   └── exceptions: HTTPParsingException, BadHTTPHeaderException, BadHTTPVersionException
+│   │           └── utils/              # static file serving
+│   │               ├── WebRootHandler.java         # serves files safely from webRoot
+│   │               └── BadRootPathException.java
 ├── test/
 │   └── com/
 │       └── example/
 │           └── web/
-│               └── http/
-│                   └── HTTPParserTest.java
+│               ├── http/
+│               │   ├── HTTPParserTest.java
+│               │   ├── HTTPHeaderTest.java
+│               │   └── HTTPVersionTest.java
+│               └── utils/
+│                   └── WebRootHandlerTest.java
 ├── lib/                                # Jackson, JUnit, SLF4J/Logback jars
-├── web/                                # (planned) static frontend
 └── out/                                # compiled .class files
 ```
 
-## Task Manager
+## JSON
 
-A console application for managing tasks.
-
-- `Task` — data holder: ID, name, completion status, priority (`TaskPriority` enum: `LOW(1)`, `MEDIUM(2)`, `HIGH(3)`).
-- `TaskManager` — stores tasks in `Map<Integer, Task>` (`HashMap`) with O(1) lookup by ID; supports add, search by ID/name, list, complete/uncomplete, remove.
-- `Main` — entry point used to exercise the manager manually.
-
-## Room Manager
-
-A model of chat-room-style membership:
-
-- `User` — participant with an immutable ID and a name.
-- `Room` — holds its members in `Map<Integer, User>`, enforces unique member IDs, requires the host to be a member, and automatically reassigns the host when they leave.
-- `RoomManager` — top-level registry of rooms (`Map<Integer, Room>`); routes join/leave actions to the right room.
+`com.example.json.Json` wraps Jackson's `ObjectMapper` with simple `parse` / `stringify` helpers, used by `ConfigurationManager` to load `config.json`.
 
 ## Web Server (in progress)
 
 The server is written by hand on raw sockets — no framework, not even `com.sun.net.httpserver`:
 
 - `HTTPServer` (entry point) loads `src/com/resources/config.json` via `ConfigurationManager`/`Json`, then opens a `ServerSocket` on the configured port.
-- `RequestHandler.begin()` accepts connections in a loop and hands each socket to an `HTTPSender` runnable on its own thread.
-- `HTTPSender` reads the request head line-by-line (a blank line ends the headers) and replies with a hard-coded HTML page.
+- `RequestHandler.run()` accepts connections in a loop (stopping after a few, as a learning demo) and hands each socket to an `HTTPWorker` on its own thread.
+- `HTTPWorker` reads the client's raw bytes and replies with a hard-coded HTML page.
 
-Roadmap: request parsing → routing → static files from `webRoot` → REST API backed by `roommanager` → simple browser frontend.
+So far the **HTTP parsing** layer (`com.example.web.http`: `HTTPParser`, `HTTPRequest`, `HTTPMethod`, `HTTPVersion`, `HTTPStatusCode`, exceptions) and **static file serving** (`com.example.web.utils.WebRootHandler`, which resolves real paths so symlinks/traversal cannot escape `webRoot`) are built and unit-tested, but not yet wired into `HTTPWorker`.
+
+Roadmap: wire `HTTPParser` + `WebRootHandler` into `HTTPWorker` → routing → REST API → simple browser frontend.
 
 ## Compilation & Running
 
@@ -93,12 +86,6 @@ javac -d out -cp 'lib/*' $(find src test -name "*.java")
 
 # clean
 rm -rf out && mkdir out
-```
-
-Run the task manager:
-
-```bash
-java -cp 'out:lib/*' com.example.taskmanager.Main
 ```
 
 Run the web server (must be launched from the repo root — it loads `src/com/resources/config.json` by relative path):
