@@ -1,13 +1,19 @@
 package com.example.web.http;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class HTTPRequest extends HTTPMessage {
     private HTTPMethod method;
     private String target;
     private String originalVersion; // literal httpversion from request
     private HTTPVersion bestCompatibleHTTPVersion;
 
+    private HashMap<String, String> header;
+
     HTTPRequest() {
         // do nothing
+        this.header = new HashMap<>();
     }
 
     HTTPRequest(HTTPMethod method, String target, String version) throws BadHTTPVersionException {
@@ -15,6 +21,7 @@ public class HTTPRequest extends HTTPMessage {
         this.target = target;
         this.originalVersion = version;
         this.bestCompatibleHTTPVersion = HTTPVersion.getBestCompatibleVersion(version);
+        this.header = new HashMap<>();
     }
 
     HTTPMethod getMethod() {
@@ -56,6 +63,35 @@ public class HTTPRequest extends HTTPMessage {
 
     HTTPVersion getBestCompatibleHTTPVersion() {
         return this.bestCompatibleHTTPVersion;
+    }
+
+    void setHeaderValue(String fieldName, String fieldValue) throws BadHTTPHeaderException {
+        if (fieldName == null || fieldName.isEmpty()) {
+            throw new BadHTTPHeaderException();
+        }
+
+        if (fieldValue == null || fieldValue.isEmpty()) {
+            throw new BadHTTPHeaderException();
+        }
+
+        if (this.header.containsKey(fieldName)) {
+            throw new BadHTTPHeaderException();
+        }
+
+        this.header.put(fieldName, fieldValue);
+    }
+
+    String getHeaderValue(String fieldName) {
+        if (fieldName == null || fieldName.isEmpty()) {
+            throw new IllegalArgumentException("Invalid fieldName");
+        }
+
+        if (!this.header.containsKey(fieldName)) {
+            throw new IllegalArgumentException("Field name not found");
+        }
+
+        String fieldValue = this.header.get(fieldName);
+        return fieldValue;
     }
 
     @Override

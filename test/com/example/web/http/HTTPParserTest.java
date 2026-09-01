@@ -192,6 +192,25 @@ public class HTTPParserTest {
             assertEquals(request.getTarget(), "/submit");
             assertEquals(request.getOriginalVersion(), "HTTP/1.1");
             assertEquals(request.getBestCompatibleHTTPVersion(), HTTPVersion.HTTP_1_1);
+            assertEquals(request.getHeaderValue("host"), "example.com");
+            assertEquals(request.getHeaderValue("user-agent"), "test-client");
+            assertEquals(request.getHeaderValue("accept"), "*/*");
+            assertEquals(request.getHeaderValue("content-length"), "0");
+        } catch (HTTPParsingException e) {
+            fail();
+        }
+    }
+
+    @Test
+    void parseHTTPFullValidGETRequestWithHeaders() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateFullValidGETWithHeadersTestCase());
+            assertEquals(request.getMethod(), HTTPMethod.GET);
+            assertEquals(request.getTarget(), "/about");
+            assertEquals(request.getOriginalVersion(), "HTTP/1.1");
+            assertEquals(request.getBestCompatibleHTTPVersion(), HTTPVersion.HTTP_1_1);
+            assertEquals(request.getHeaderValue("host"), "example.com");
+            assertEquals(request.getHeaderValue("accept-language"), "en-us");
         } catch (HTTPParsingException e) {
             fail();
         }
@@ -315,6 +334,15 @@ public class HTTPParserTest {
                 "User-Agent: test-client\r\n" +
                 "Accept: */*\r\n" +
                 "Content-Length: 0\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateFullValidGETWithHeadersTestCase() {
+        String rawData = "GET /about HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Accept-Language: en-US\r\n" +
                 "\r\n";
         InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
         return instream;

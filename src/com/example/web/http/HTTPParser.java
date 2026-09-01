@@ -3,6 +3,8 @@ package com.example.web.http;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
@@ -13,6 +15,9 @@ public class HTTPParser {
     private static final int SP = (int) ' ';
     private static final int CR = (int) '\r';
     private static final int LF = (int) '\n';
+
+    private static final Pattern HEADER_LINE_PATTERN = Pattern.compile(
+            "^(?<name>[!#$%&'*+\\-.^_`|~0-9A-Za-z]+):[ \\t]*(?<value>.*?)[ \\t]*$");
 
     private void parseRequestLine(InputStreamReader reader, HTTPRequest request)
             throws HTTPParsingException {
@@ -79,8 +84,46 @@ public class HTTPParser {
         }
     }
 
-    private void parseRequestHeader(InputStreamReader reader, HTTPRequest request) {
+    private void parseRequestHeader(InputStreamReader reader, HTTPRequest request) throws HTTPParsingException {
+        try {
+            StringBuilder buffer = new StringBuilder();
+            int _byte;
+            while ((_byte = reader.read()) >= 0) {
+                if (_byte == HTTPParser.CR) {
+                    if ((_byte = reader.read()) != HTTPParser.LF) { // CR but no LF
+                        throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                    }
+                    if (buffer.length() == 0) { // complete
+                        return;
+                    }
 
+                    String line = buffer.toString();
+                    this.parseSingleLineHeader(line, request);
+                    buffer.setLength(0); // clear buffer
+                    continue; // keep LF out of the buffer
+                } else if (_byte == HTTPParser.LF) { // LF but no CR
+                    throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                }
+                buffer.append((char) _byte);
+            }
+        } catch (IOException e) {
+            throw new HTTPParsingException(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void parseSingleLineHeader(String line, HTTPRequest request) throws HTTPParsingException {
+        Matcher matcher = HEADER_LINE_PATTERN.matcher(line);
+        if (!matcher.find() || matcher.groupCount() != 2) {
+            throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+        String fieldName = matcher.group("name").toLowerCase();
+        String fieldValue = matcher.group("value").toLowerCase();
+        LOGGER.debug("Processing name: " + fieldName + " with value: " + fieldValue);
+        try {
+            request.setHeaderValue(fieldName, fieldValue);
+        } catch (BadHTTPHeaderException e) {
+            throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
     }
 
     private void parseRequestBody(InputStreamReader reader, HTTPRequest request) {
