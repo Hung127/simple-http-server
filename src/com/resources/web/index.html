@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How a Hand-Written HTTP Server Works</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a class="active" href="/">Home</a>
+            <a href="/methods.html">HTTP Methods</a>
+            <a href="/status-codes.html">Status Codes</a>
+            <a href="/roadmap.html">Roadmap</a>
+        </nav>
+        <header>
+            <div class="eyebrow">Engineering Notes</div>
+            <h1>How a Hand-Written HTTP Server Works</h1>
+            <div class="byline">by the Simple HTTP Server team · September 2026</div>
+        </header>
+
+        <p>Most web applications hide the transport layer behind a framework. But underneath it all, an HTTP server is fundamentally an exercise in parsing raw bytes from a socket and writing a response back. This article walks through how our tiny server does exactly that — no Spring, no Tomcat, just the JDK and a lot of curiosity.</p>
+
+        <figure>
+            <img src="/images/landscape.svg" alt="A serene landscape illustration">
+            <figcaption>A little creative break from the socket code.</figcaption>
+        </figure>
+
+        <h2>From Socket to Request</h2>
+        <p>When a client connects, the server accepts the socket and hands it to a worker thread. Our <code>HTTPParser</code> reads the request line — <code>GET / HTTP/1.1</code> — then tears it apart into a method, a target path, and a version. Headers follow on subsequent lines until a blank line signals the end.</p>
+
+        <blockquote>"The beauty of HTTP is that it is a text protocol: you can literally see the request on the wire."</blockquote>
+
+        <h2>Building a Response</h2>
+        <p>Once the request is understood, the server looks up the requested file in the web root, being careful to resolve real paths so that <code>..</code> segments and symlinks cannot escape. The <code>HTTPResponse</code> object then assembles a status line, default headers like <code>Content-Type</code> and <code>Content-Length</code>, and finally the body bytes — all written back over the same socket.</p>
+
+        <h2>Why Build It By Hand?</h2>
+        <p>Reading and writing raw HTTP changes how you think about the web. Serving a stylesheet, an image, or a page is the same flow: parse the request, resolve the file, send it back with the right headers. Once the fundamentals are in place, layers like routing and JSON APIs slot in naturally.</p>
+
+        <footer>
+            <p>Served by a hand-written Java HTTP server. Check the source in <code>src/com/example/web</code>.</p>
+        </footer>
+    </div>
+</body>
+</html>

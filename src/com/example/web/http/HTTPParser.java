@@ -10,6 +10,8 @@ import java.io.InputStreamReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.example.web.utils.WebRootHandler;
+
 public class HTTPParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(HTTPParser.class);
     private static final int SP = (int) ' ';
@@ -19,7 +21,7 @@ public class HTTPParser {
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile(
             "^(?<name>[!#$%&'*+\\-.^_`|~0-9A-Za-z]+):[ \\t]*(?<value>.*?)[ \\t]*$");
 
-    private void parseRequestLine(InputStreamReader reader, HTTPRequest request)
+    private void parseRequestLine(InputStreamReader reader, HTTPRequest request, WebRootHandler webRoot)
             throws HTTPParsingException {
         // format: method SP target SP version CRLF
         int _byte;
@@ -130,13 +132,14 @@ public class HTTPParser {
 
     }
 
-    public HTTPRequest parseHTTPRequest(InputStream inStream) throws HTTPParsingException {
+    public HTTPRequest parseHTTPRequest(InputStream inStream, WebRootHandler webRootHandler)
+            throws HTTPParsingException {
         InputStreamReader reader = new InputStreamReader(inStream, StandardCharsets.US_ASCII);
 
         HTTPRequest request = new HTTPRequest();
 
         // TODO: Builder pattern
-        this.parseRequestLine(reader, request);
+        this.parseRequestLine(reader, request, webRootHandler);
         this.parseRequestHeader(reader, request);
         this.parseRequestBody(reader, request);
 

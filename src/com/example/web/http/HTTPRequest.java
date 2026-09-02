@@ -4,10 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HTTPRequest extends HTTPMessage {
-    private HTTPMethod method;
-    private String target;
+    private HTTPMethod method = HTTPMethod.GET;
+    private String target = "/";
     private String originalVersion; // literal httpversion from request
-    private HTTPVersion bestCompatibleHTTPVersion;
+    private HTTPVersion bestCompatibleHTTPVersion = HTTPVersion.HTTP_1_1;
 
     private HashMap<String, String> header;
 

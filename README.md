@@ -8,19 +8,24 @@ It is intended as a hands-on learning project for understanding how an HTTP serv
 
 | Module | Package | Status |
 |---|---|---|
-| Web Server | `com.example.web` | In progress: accept loop, thread-per-connection, config loading, HTTP parsing, static file serving |
+| Web Server | `com.example.web` | Working: accept loop, thread-per-connection, config loading, HTTP parsing, response building, static file serving (with correct MIME types) |
 | JSON | `com.example.json` | Thin wrapper around Jackson (parse / stringify), used for config loading |
 
 ## Project Structure
 
 ```text
-basic-watch/
+simple-http-server/
 ├── src/
 │   ├── com/
 │   │   ├── resources/
 │   │   │   ├── config.json             # runtime config (port, webRoot)
-│   │   │   └── web/
-│   │   │       └── index.html          # served web root (static files)
+│   │   │   └── web/                    # served web root (static files)
+│   │   │       ├── index.html          # article landing page
+│   │   │       ├── methods.html        # HTTP methods page
+│   │   │       ├── status-codes.html   # status codes page
+│   │   │       ├── roadmap.html        # project roadmap page
+│   │   │       ├── css/style.css       # shared stylesheet (incl. nav)
+│   │   │       └── images/landscape.svg
 │   │   └── example/
 │   │       ├── json/
 │   │       │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
@@ -28,17 +33,18 @@ basic-watch/
 │   │           ├── HTTPServer.java     # entry point: loads config, opens ServerSocket
 │   │           ├── RequestHandler.java # accept loop, one thread per connection
 │   │           ├── configuration/      # config.json loading (ConfigurationManager, Configuration, HTTPConfigurationException)
-│   │           ├── http/               # HTTP parsing
-│   │           │   ├── HTTPParser.java             # request-line + header parsing
-│   │           │   ├── HTTPRequest.java            # parsed request data
+│   │           ├── http/
 │   │           │   ├── HTTPMessage.java            # shared message base
-│   │           │   ├── HTTPMethod.java             # enum GET / POST / ...
+│   │           │   ├── HTTPRequest.java            # parsed request data
+│   │           │   ├── HTTPResponse.java           # built response (status line, headers, body)
+│   │           │   ├── HTTPParser.java             # request-line + header parsing
+│   │           │   ├── HTTPMethod.java             # enum GET / HEAD / ...
 │   │           │   ├── HTTPVersion.java            # enum + compatibility resolution
 │   │           │   ├── HTTPStatusCode.java         # status code enum
 │   │           │   ├── HTTPWorker.java             # per-connection response thread
 │   │           │   └── exceptions: HTTPParsingException, BadHTTPHeaderException, BadHTTPVersionException
 │   │           └── utils/              # static file serving
-│   │               ├── WebRootHandler.java         # serves files safely from webRoot
+│   │               ├── WebRootHandler.java         # serves files safely from webRoot + MIME types
 │   │               └── BadRootPathException.java
 ├── test/
 │   └── com/
@@ -47,28 +53,41 @@ basic-watch/
 │               ├── http/
 │               │   ├── HTTPParserTest.java
 │               │   ├── HTTPHeaderTest.java
-│               │   └── HTTPVersionTest.java
+│               │   ├── HTTPVersionTest.java
+│               │   ├── HTTPResponseTest.java
+│               │   └── HTTPWorkerTest.java
 │               └── utils/
 │                   └── WebRootHandlerTest.java
 ├── lib/                                # Jackson, JUnit, SLF4J/Logback jars
-└── out/                                # compiled .class files
+└── out/                                # compiled .class files (git-ignored)
 ```
 
 ## JSON
 
 `com.example.json.Json` wraps Jackson's `ObjectMapper` with simple `parse` / `stringify` helpers, used by `ConfigurationManager` to load `config.json`.
 
-## Web Server (in progress)
+## Web Server
 
 The server is written by hand on raw sockets — no framework, not even `com.sun.net.httpserver`:
 
 - `HTTPServer` (entry point) loads `src/com/resources/config.json` via `ConfigurationManager`/`Json`, then opens a `ServerSocket` on the configured port.
-- `RequestHandler.run()` accepts connections in a loop (stopping after a few, as a learning demo) and hands each socket to an `HTTPWorker` on its own thread.
-- `HTTPWorker` reads the client's raw bytes and replies with a hard-coded HTML page.
+- `RequestHandler.run()` accepts connections in a loop and hands each socket to an `HTTPWorker` on its own thread.
+- `HTTPWorker` parses the request with `HTTPParser`, builds an `HTTPResponse` (status line, default headers, body), and writes it back over the socket.
 
-So far the **HTTP parsing** layer (`com.example.web.http`: `HTTPParser`, `HTTPRequest`, `HTTPMethod`, `HTTPVersion`, `HTTPStatusCode`, exceptions) and **static file serving** (`com.example.web.utils.WebRootHandler`, which resolves real paths so symlinks/traversal cannot escape `webRoot`) are built and unit-tested, but not yet wired into `HTTPWorker`.
+### How a request is handled
 
-Roadmap: wire `HTTPParser` + `WebRootHandler` into `HTTPWorker` → routing → REST API → simple browser frontend.
+1. `HTTPParser` reads the request line (`GET / HTTP/1.1`) and headers, populating an `HTTPRequest`.
+2. On success, the status is set to `200`; on a parse error it is set from the thrown `HTTPParsingException`.
+3. `WebRootHandler.readFile()` loads the requested file from `webRoot`, resolving real paths so `..` segments and symlinks cannot escape (guards against path traversal).
+4. `HTTPResponse` serializes: status line → headers → blank line → body. `HTTPWorker` attaches default headers:
+   - `Content-Type` derived from the file extension via `WebRootHandler.getContentType()` (falls back to `text/html` for error responses)
+   - `Content-Length` computed from the body
+   - `Connection: close`
+5. Non-`200` responses get a simple HTML error body.
+
+The **static site** in `src/com/resources/web` (a small article-style multi-page site with shared navigation) exercises the server end to end, serving HTML, CSS, and SVG.
+
+Roadmap: request bodies (`POST`/`PUT`/`DELETE`) → routing → JSON REST API → simple browser frontend → thread pooling / connection keep-alive.
 
 ## Compilation & Running
 
@@ -97,7 +116,7 @@ java -cp 'out:lib/*' com.example.web.HTTPServer
 curl -v http://localhost:8080
 ```
 
-Note: `RequestHandler` currently stops accepting after a handful of connections (learning demo), so restart the server once the accept loop exits.
+The server keeps serving until stopped (Ctrl+C closes the accept loop).
 
 ### Testing
 
@@ -118,8 +137,10 @@ To run a specific test class:
 ```bash
 java -jar lib/junit-platform-console-standalone-6.1.3.jar execute \
   --class-path "out:$(ls lib/*.jar | tr '\n' ':')" \
-  --select-class com.example.web.http.HTTPParserTest
+  --select-class com.example.web.http.HTTPResponseTest
 ```
+
+> Note: `HTTPWorkerTest` spins up real socket pairs against a temp web root, so the full suite exercises the server wire end to end.
 
 ## Requirements
 

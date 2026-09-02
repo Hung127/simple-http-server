@@ -1,0 +1,136 @@
+/* Article styles for the Simple HTTP Server */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.7;
+    color: #2d2d2d;
+    background: #faf8f5;
+    padding: 2rem 1rem;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    padding: 3rem 2.5rem;
+}
+
+nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    border-bottom: 1px solid #e8e4de;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+nav a {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 20px;
+    border: 1px solid #e0d9d0;
+    color: #b3573a;
+}
+
+nav a:hover {
+    background: #b3573a;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+nav a.active {
+    background: #b3573a;
+    color: #ffffff;
+}
+
+header {
+    text-align: center;
+    border-bottom: 1px solid #e8e4de;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.8rem;
+    color: #b3573a;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 2.2rem;
+    margin: 0.5rem 0;
+    color: #1d1d1d;
+}
+
+.byline {
+    color: #8a857e;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+figure {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+figure img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+figcaption {
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    color: #8a857e;
+    font-style: italic;
+}
+
+h2 {
+    font-size: 1.4rem;
+    color: #1d1d1d;
+    margin: 1.5rem 0 0.5rem;
+}
+
+p {
+    margin-bottom: 1.1rem;
+}
+
+blockquote {
+    border-left: 4px solid #b3573a;
+    margin: 1.5rem 0;
+    padding: 0.5rem 1.2rem;
+    background: #fbf6f2;
+    color: #5b514a;
+    font-style: italic;
+}
+
+a {
+    color: #b3573a;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e8e4de;
+    font-size: 0.85rem;
+    color: #8a857e;
+    text-align: center;
+}

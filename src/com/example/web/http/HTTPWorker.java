@@ -3,9 +3,10 @@ package com.example.web.http;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.io.InputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+
+import com.example.web.utils.BadRootPathException;
+import com.example.web.utils.WebRootHandler;
 
 import java.io.IOException;
 
@@ -14,42 +15,7 @@ public class HTTPWorker implements Runnable {
     private final OutputStream outStream;
     private final InputStream inStream;
     private final Socket socket;
-
-    private void readRequest() throws IOException {
-        // make a inputstreamreader to make inputstream bytes into utf8 characters
-        InputStreamReader inputStreamReader = new InputStreamReader(this.inStream,
-                StandardCharsets.UTF_8);
-        // we cannot use inputStream to read all bytes, because the readAllBytes stops
-        // iff the connection is close, maybe the browser wants to keep the connection
-        // -> cant read all bytes at once
-
-        // make buffer reader to read inputreader line by line
-        BufferedReader bufferReader = new BufferedReader(inputStreamReader);
-
-        String line = null;
-        // line = null means there is no more data (closed connection)
-        while ((line = bufferReader.readLine()) != null) {
-            // problem: maybe the browser just keep the connection
-            // so we want a way to stop when a request header is sent -> the end of a
-            // request header is a blank line -> isEmpty() ("")
-            if (line.isEmpty()) {
-                break;
-            }
-            System.out.println("Received: " + line);
-        }
-    }
-
-    private String getHTML() {
-        String html = "<!DOCTYPE html>" +
-                "<html>" +
-                "<head><title>Test Server</title></head>" +
-                "<body>" +
-                "<h1>Hello from Java!</h1>" +
-                "<p>This is a test HTTP server.</p>" +
-                "</body>" +
-                "</html>";
-        return html;
-    }
+    private final WebRootHandler fileHandler;
 
     public String makeHTTPResponse(String body) {
         byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
@@ -63,29 +29,61 @@ public class HTTPWorker implements Runnable {
         return header + body;
     }
 
-    public HTTPWorker(Socket socket) throws IOException {
+    public HTTPWorker(Socket socket, WebRootHandler fileHandler) throws IOException {
         this.socket = socket;
         this.inStream = socket.getInputStream();
         this.outStream = socket.getOutputStream();
+        this.fileHandler = fileHandler;
     }
 
     @Override
     public void run() {
+        HTTPParser requestParser = new HTTPParser();
+        HTTPRequest request = new HTTPRequest();
+        HTTPResponse response = new HTTPResponse();
+
         try {
-            // this.readRequest();
-            int _byte;
-            while ((_byte = this.inStream.read()) >= 0) {
-                System.out.print((char) _byte);
-            }
-        } catch (IOException e) {
-            System.out.println("Cannot read request message");
+            request = requestParser.parseHTTPRequest(this.inStream, this.fileHandler);
+            response.setStatusCode(HTTPStatusCode.SUCCESS_200);
+        } catch (HTTPParsingException e) {
+            response.setStatusCode(e.getErrorCode());
+        } finally {
+            response.setRequest(request);
         }
 
-        String responseBody = this.getHTML();
-        String response = this.makeHTTPResponse(responseBody);
+        if (response.getStatusCode() == HTTPStatusCode.SUCCESS_200) { // parse success, try to serve file
+            try {
+                byte[] body = this.fileHandler.readFile(request.getTarget());
+                response.setBody(body);
+            } catch (IOException e) {
+                response.setStatusCode(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
+            } catch (BadRootPathException e) {
+                response.setStatusCode(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+            }
+        }
+
+        if (response.getStatusCode() != HTTPStatusCode.SUCCESS_200) {
+            String errorMsg = response.getStatusCode().STATUS_CODE + " " + response.getStatusCode().MESSAGE;
+            String errorHtml = "<html><body><h1>" + errorMsg + "</h1></body></html>";
+            response.setBody(errorHtml.getBytes(StandardCharsets.UTF_8));
+        }
+
+        String contentType;
+        try {
+            contentType = this.fileHandler.getContentType(request.getTarget());
+        } catch (BadRootPathException e) {
+            contentType = "text/html; charset=UTF-8";
+        }
 
         try {
-            this.outStream.write(response.getBytes());
+            response.setHeaderValue("Content-Type", contentType);
+            response.setHeaderValue("Connection", "close");
+            response.setHeaderValue("Content-Length", String.valueOf(response.getBody().length));
+        } catch (BadHTTPHeaderException e) {
+        }
+
+        try {
+            this.outStream.write(response.toByteArray());
         } catch (IOException e) {
             System.out.println("Cannot send read request or send response to client");
         } finally {

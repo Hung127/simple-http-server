@@ -23,7 +23,7 @@ public class HTTPHeaderTest {
     @Test
     void parseSingleHeader() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateSingleHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateSingleHeaderTestCase(), null);
             assertEquals(request.getHeaderValue("host"), "localhost");
         } catch (HTTPParsingException e) {
             fail();
@@ -33,7 +33,7 @@ public class HTTPHeaderTest {
     @Test
     void parseMultipleHeaders() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMultipleHeadersTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMultipleHeadersTestCase(), null);
             assertEquals(request.getHeaderValue("host"), "example.com");
             assertEquals(request.getHeaderValue("user-agent"), "test-client");
             assertEquals(request.getHeaderValue("accept"), "*/*");
@@ -45,7 +45,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderWithOptionalWhitespace() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateWhitespaceHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateWhitespaceHeaderTestCase(), null);
             assertEquals(request.getHeaderValue("host"), "localhost");
             assertEquals(request.getHeaderValue("x-test"), "value");
         } catch (HTTPParsingException e) {
@@ -56,7 +56,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderNameAndValueLowercased() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase(), null);
             assertEquals(request.getHeaderValue("user-agent"), "test-client");
         } catch (HTTPParsingException e) {
             fail();
@@ -66,7 +66,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderValueLowercased() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase(), null);
             assertEquals(request.getHeaderValue("x-mode"), "strict");
         } catch (HTTPParsingException e) {
             fail();
@@ -76,7 +76,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderEmptyValue() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateEmptyValueHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateEmptyValueHeaderTestCase(), null);
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -86,7 +86,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderMissingColon() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingColonHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingColonHeaderTestCase(), null);
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -96,7 +96,7 @@ public class HTTPHeaderTest {
     @Test
     void parseHeaderSpaceBeforeColon() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateSpaceBeforeColonHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateSpaceBeforeColonHeaderTestCase(), null);
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -106,7 +106,7 @@ public class HTTPHeaderTest {
     @Test
     void parseDuplicateHeader() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateDuplicateHeaderTestCase());
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateDuplicateHeaderTestCase(), null);
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Status Codes</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/methods.html">HTTP Methods</a>
+            <a class="active" href="/status-codes.html">Status Codes</a>
+            <a href="/roadmap.html">Roadmap</a>
+        </nav>
+        <header>
+            <div class="eyebrow">Engineering Notes</div>
+            <h1>HTTP Status Codes</h1>
+            <div class="byline">The language of outcomes · September 2026</div>
+        </header>
+
+        <p>After processing a request, the server returns a three-digit status code that tells the client how it went. Our server models these in the <code>HTTPStatusCode</code> enum, each carrying a numeric code and a human-readable message.</p>
+
+        <h2>Success: 200</h2>
+        <p>Everything worked. The server found the requested file and is sending it back. This is the response you see when loading any of the pages on this site.</p>
+
+        <h2>Client Errors: 400, 401, 414</h2>
+        <p>These mean the request itself was malformed or impossible. A <code>400 Bad Request</code> appears when the request line is malformed or headers are invalid. <code>414 URI Too Long</code> guards against oversized request targets.</p>
+
+        <h2>Server Errors: 500, 501, 505</h2>
+        <p>These indicate the server could not fulfill an otherwise valid request. <code>500 Internal Server Error</code> flags an unexpected failure handling a file. <code>501 Not Implemented</code> is returned for methods we do not support yet. <code>505 HTTP Version Not Supported</code> rejects requests from an unknown protocol version.</p>
+
+        <blockquote>"A good status code turns a vague failure into an actionable one."</blockquote>
+
+        <footer>
+            <p>Served by a hand-written Java HTTP server. Interested in how methods map to these? See <a href="/methods.html">HTTP Methods</a>.</p>
+        </footer>
+    </div>
+</body>
+</html>

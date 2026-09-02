@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Methods</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a class="active" href="/methods.html">HTTP Methods</a>
+            <a href="/status-codes.html">Status Codes</a>
+            <a href="/roadmap.html">Roadmap</a>
+        </nav>
+        <header>
+            <div class="eyebrow">Engineering Notes</div>
+            <h1>HTTP Methods We Support</h1>
+            <div class="byline">What the parser understands · September 2026</div>
+        </header>
+
+        <p>Every request line begins with a method — a verb that tells the server what the client wants to do. Our current server implements <code>GET</code> and <code>HEAD</code>, and rejects anything else as unimplemented.</p>
+
+        <h2>GET</h2>
+        <p>The workhorse of the web. <code>GET</code> asks the server to retrieve a resource. In our implementation it reads the requested file from the web root and returns it with the proper <code>Content-Type</code> header. Because <code>GET</code> is a safe, read-only operation, browsers and caches rely on it heavily for loading pages, stylesheets, and images.</p>
+
+        <h2>HEAD</h2>
+        <p>Identical to <code>GET</code>, except the server omits the response body. It is handy for checking whether a resource exists, reading its headers, or measuring a response before downloading it. Our <code>HTTPParser</code> recognizes <code>HEAD</code> just like <code>GET</code>.</p>
+
+        <blockquote>"Supporting HEAD for free is a nice side effect of keeping GET simple."</blockquote>
+
+        <h2>Not Yet Implemented</h2>
+        <p>Methods like <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> are part of the roadmap. They introduce the need for an HTTP request body — and along with it, careful handling of <code>Content-Length</code> and <code>Content-Type</code> on the request side.</p>
+
+        <footer>
+            <p>Served by a hand-written Java HTTP server. Read more in <a href="/">the home article</a>.</p>
+        </footer>
+    </div>
+</body>
+</html>

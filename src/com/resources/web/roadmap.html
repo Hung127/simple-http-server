@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/methods.html">HTTP Methods</a>
+            <a href="/status-codes.html">Status Codes</a>
+            <a class="active" href="/roadmap.html">Roadmap</a>
+        </nav>
+        <header>
+            <div class="eyebrow">Engineering Notes</div>
+            <h1>Where the Server Is Headed</h1>
+            <div class="byline">The plan · September 2026</div>
+        </header>
+
+        <p>This project is a learning journey: build a real HTTP server by hand, then layer on features one at a time. Here is the roadmap we are following.</p>
+
+        <h2>Done So Far</h2>
+        <p>Raw socket handling, one thread per connection, HTTP request parsing (<code>GET</code>/<code>HEAD</code>), safe static file serving with path-traversal protection, correct <code>Content-Type</code> for common files, and default headers on every response. All of it is unit-tested.</p>
+
+        <h2>Next Up</h2>
+        <p>Support for request bodies, which unlocks <code>POST</code>, <code>PUT</code>, and <code>DELETE</code>. From there we can add real routing and a small JSON REST API backed by the Jackson library already sitting in <code>lib/</code>.</p>
+
+        <h2>Eventually</h2>
+        <p>A simple browser frontend to exercise the API, and maybe request logging with the SLF4J setup that is already wired in. The goal is to reach a point where the server can serve a useful site end to end.</p>
+
+        <blockquote>"Building it by hand first makes every framework you meet later feel like magic you can peek under."</blockquote>
+
+        <footer>
+            <p>Served by a hand-written Java HTTP server. See the <a href="/status-codes.html">status codes</a> it returns along the way.</p>
+        </footer>
+    </div>
+</body>
+</html>

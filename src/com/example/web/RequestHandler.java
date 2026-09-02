@@ -6,9 +6,14 @@ import java.net.Socket;
 import com.example.web.configuration.Configuration;
 
 import com.example.web.http.HTTPWorker;
+import com.example.web.utils.WebRootHandler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RequestHandler implements Runnable {
     private final ServerSocket server;
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestHandler.class);
 
     private final Configuration config;
 
@@ -18,24 +23,19 @@ public class RequestHandler implements Runnable {
         }
         this.config = config;
         int port = this.config.getPort();
-        System.out.println("Creating socket with port " + port + "...");
+        LOGGER.debug("Creating socket with port " + port + "...");
         this.server = new ServerSocket(port);
     }
 
     @Override
     public void run() {
         System.out.println("Server is listening on port " + this.server.getLocalPort());
-        int i = 0;
         try {
             while (true) {
                 Socket socket = this.server.accept();
-                HTTPWorker sender = new HTTPWorker(socket);
+                HTTPWorker sender = new HTTPWorker(socket, new WebRootHandler(config.getWebRoot()));
                 Thread thread = new Thread(sender);
                 thread.start();
-
-                if (i++ >= 5) {
-                    break;
-                }
             }
         } catch (IOException e) {
         } finally {
