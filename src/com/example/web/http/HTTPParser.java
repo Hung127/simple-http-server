@@ -2,10 +2,8 @@ package com.example.web.http;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +19,7 @@ public class HTTPParser {
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile(
             "^(?<name>[!#$%&'*+\\-.^_`|~0-9A-Za-z]+):[ \\t]*(?<value>.*?)[ \\t]*$");
 
-    private void parseRequestLine(InputStreamReader reader, HTTPRequest request, WebRootHandler webRoot)
+    private void parseRequestLine(InputStream in, HTTPRequest request, WebRootHandler webRoot)
             throws HTTPParsingException {
         // format: method SP target SP version CRLF
         int _byte;
@@ -30,9 +28,9 @@ public class HTTPParser {
         boolean gotTarget = false;
 
         try {
-            while ((_byte = reader.read()) >= 0) {
+            while ((_byte = in.read()) >= 0) {
                 if (_byte == CR) {
-                    if ((_byte = reader.read()) == HTTPParser.LF) {
+                    if ((_byte = in.read()) == HTTPParser.LF) {
                         if (!gotMethod || !gotTarget) { // Missing any fields
                             throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
                         }
@@ -86,13 +84,13 @@ public class HTTPParser {
         }
     }
 
-    private void parseRequestHeader(InputStreamReader reader, HTTPRequest request) throws HTTPParsingException {
+    private void parseRequestHeader(InputStream in, HTTPRequest request) throws HTTPParsingException {
         try {
             StringBuilder buffer = new StringBuilder();
             int _byte;
-            while ((_byte = reader.read()) >= 0) {
+            while ((_byte = in.read()) >= 0) {
                 if (_byte == HTTPParser.CR) {
-                    if ((_byte = reader.read()) != HTTPParser.LF) { // CR but no LF
+                    if ((_byte = in.read()) != HTTPParser.LF) { // CR but no LF
                         throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
                     }
                     if (buffer.length() == 0) { // complete
@@ -119,7 +117,7 @@ public class HTTPParser {
             throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
         String fieldName = matcher.group("name").toLowerCase();
-        String fieldValue = matcher.group("value").toLowerCase();
+        String fieldValue = matcher.group("value");
         LOGGER.debug("Processing name: " + fieldName + " with value: " + fieldValue);
         try {
             request.setHeaderValue(fieldName, fieldValue);
@@ -128,20 +126,51 @@ public class HTTPParser {
         }
     }
 
-    private void parseRequestBody(InputStreamReader reader, HTTPRequest request) {
+    private void parseRequestBody(InputStream in, HTTPRequest request) throws HTTPParsingException {
+        HTTPMethod requestMethod = request.getMethod();
+        if (requestMethod == HTTPMethod.GET) { // no need to read body for GET
+            return;
+        }
 
+        int contentLength = HTTPRequest.MAX_BODY_LENGTH;
+
+        try {
+            contentLength = Integer.parseInt(request.getHeaderValue("content-length"));
+            if (contentLength < 0) {
+                throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+            } else if (contentLength > HTTPRequest.MAX_BODY_LENGTH) {
+                throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_413_CONTENT_TOO_LARGE);
+            }
+        } catch (IllegalArgumentException e) { // wrong format or error in header
+            throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+
+        byte[] byteArray = new byte[contentLength];
+        try {
+            for (int i = 0; i < contentLength; i++) {
+                int _byte = in.read();
+                if (_byte >= 0) {
+                    byteArray[i] = (byte) _byte;
+                } else { // shorter than expected
+                    throw new HTTPParsingException(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                }
+            }
+
+            request.setBody(byteArray);
+
+        } catch (IOException e) {
+            throw new HTTPParsingException(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public HTTPRequest parseHTTPRequest(InputStream inStream, WebRootHandler webRootHandler)
             throws HTTPParsingException {
-        InputStreamReader reader = new InputStreamReader(inStream, StandardCharsets.US_ASCII);
-
         HTTPRequest request = new HTTPRequest();
 
         // TODO: Builder pattern
-        this.parseRequestLine(reader, request, webRootHandler);
-        this.parseRequestHeader(reader, request);
-        this.parseRequestBody(reader, request);
+        this.parseRequestLine(inStream, request, webRootHandler);
+        this.parseRequestHeader(inStream, request);
+        this.parseRequestBody(inStream, request);
 
         return request;
     }

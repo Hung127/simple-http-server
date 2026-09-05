@@ -1,7 +1,7 @@
 package com.example.web.http;
 
 public enum HTTPMethod {
-    GET, HEAD;
+    GET, HEAD, POST;
 
     public static final int MAX_LENGTH;
 

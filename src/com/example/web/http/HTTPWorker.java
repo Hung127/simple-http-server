@@ -51,14 +51,20 @@ public class HTTPWorker implements Runnable {
             response.setRequest(request);
         }
 
+        // TODO: method, API, static files serving handler
         if (response.getStatusCode() == HTTPStatusCode.SUCCESS_200) { // parse success, try to serve file
             try {
-                byte[] body = this.fileHandler.readFile(request.getTarget());
-                response.setBody(body);
-            } catch (IOException e) {
+                if (request.getMethod() == HTTPMethod.POST) {
+                    byte[] body = new String("Hello").getBytes(StandardCharsets.US_ASCII);
+                    response.setBody(body);
+                } else {
+                    byte[] body = this.fileHandler.readFile(request.getTarget());
+                    response.setBody(body);
+                }
+            } catch (IOException e) { // problem in server reading files
                 response.setStatusCode(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
-            } catch (BadRootPathException e) {
-                response.setStatusCode(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+            } catch (BadRootPathException e) { // cannot serve file
+                response.setStatusCode(HTTPStatusCode.CLIENT_ERROR_404_NOT_FOUND);
             }
         }
 

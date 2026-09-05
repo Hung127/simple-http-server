@@ -4,15 +4,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HTTPRequest extends HTTPMessage {
+
+    static final int MAX_BODY_LENGTH = 1024; // max body length in bytes
+
     private HTTPMethod method = HTTPMethod.GET;
     private String target = "/";
     private String originalVersion; // literal httpversion from request
     private HTTPVersion bestCompatibleHTTPVersion = HTTPVersion.HTTP_1_1;
-
+    private byte[] body;
     private HashMap<String, String> header;
 
     HTTPRequest() {
-        // do nothing
+        this.body = null;
         this.header = new HashMap<>();
     }
 
@@ -25,7 +28,7 @@ public class HTTPRequest extends HTTPMessage {
     }
 
     HTTPMethod getMethod() {
-        return method;
+        return this.method;
     }
 
     void setMethod(String methodName) throws HTTPParsingException {
@@ -40,6 +43,14 @@ public class HTTPRequest extends HTTPMessage {
 
     String getTarget() {
         return target;
+    }
+
+    void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    byte[] getBody() {
+        return this.body;
     }
 
     void setTarget(String target) throws HTTPParsingException {
