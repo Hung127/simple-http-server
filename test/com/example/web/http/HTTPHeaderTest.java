@@ -54,20 +54,20 @@ public class HTTPHeaderTest {
     }
 
     @Test
-    void parseHeaderNameAndValueLowercased() {
+    void parseHeaderNameLowercasedValuePreserved() {
         try {
             HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase(), null);
-            assertEquals(request.getHeaderValue("user-agent"), "test-client");
+            assertEquals(request.getHeaderValue("user-agent"), "Test-Client");
         } catch (HTTPParsingException e) {
             fail();
         }
     }
 
     @Test
-    void parseHeaderValueLowercased() {
+    void parseHeaderValuePreservedCase() {
         try {
             HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMixedCaseHeaderTestCase(), null);
-            assertEquals(request.getHeaderValue("x-mode"), "strict");
+            assertEquals(request.getHeaderValue("x-mode"), "STRICT");
         } catch (HTTPParsingException e) {
             fail();
         }

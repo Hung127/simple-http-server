@@ -1,5 +1,6 @@
 package com.example.web.http;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -76,6 +77,7 @@ public class HTTPParserTest {
             HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidHEADTestCase(), null);
             assertEquals(request.getMethod(), HTTPMethod.HEAD);
             assertEquals(request.getTarget(), "/index.html");
+            assertEquals(request.getBody().length, 0);
         } catch (HTTPParsingException e) {
             fail();
         }
@@ -210,9 +212,119 @@ public class HTTPParserTest {
             assertEquals(request.getOriginalVersion(), "HTTP/1.1");
             assertEquals(request.getBestCompatibleHTTPVersion(), HTTPVersion.HTTP_1_1);
             assertEquals(request.getHeaderValue("host"), "example.com");
-            assertEquals(request.getHeaderValue("accept-language"), "en-us");
+            assertEquals(request.getHeaderValue("accept-language"), "en-US");
         } catch (HTTPParsingException e) {
             fail();
+        }
+    }
+
+    @Test
+    void parseHTTPHeadRequestWithBody() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithBodyTestCase(), null);
+            assertEquals(request.getMethod(), HTTPMethod.HEAD);
+            assertEquals(request.getHeaderValue("content-length"), "5");
+            assertArrayEquals(new byte[]{104, 101, 108, 108, 111}, request.getBody());
+        } catch (HTTPParsingException e) {
+            fail();
+        }
+    }
+
+    @Test
+    void parseHTTPPostRequestWithBody() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase(), null);
+            assertEquals(request.getMethod(), HTTPMethod.POST);
+            assertEquals(request.getHeaderValue("content-length"), "4");
+            assertArrayEquals("name".getBytes(StandardCharsets.US_ASCII), request.getBody());
+        } catch (HTTPParsingException e) {
+            fail();
+        }
+    }
+
+    @Test
+    void parseHTTPPostBodyAtMaxLengthAccepted() {
+        try {
+            StringBuilder body = new StringBuilder(HTTPRequest.MAX_BODY_LENGTH);
+            for (int i = 0; i < HTTPRequest.MAX_BODY_LENGTH; i++) {
+                body.append('a');
+            }
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase(body.toString()), null);
+            assertEquals(request.getMethod(), HTTPMethod.POST);
+            assertArrayEquals(body.toString().getBytes(StandardCharsets.US_ASCII), request.getBody());
+        } catch (HTTPParsingException e) {
+            fail();
+        }
+    }
+
+    @Test
+    void parseHTTPPostZeroLengthBody() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostZeroLengthBodyTestCase(), null);
+            assertEquals(request.getMethod(), HTTPMethod.POST);
+            assertEquals(0, request.getBody().length);
+        } catch (HTTPParsingException e) {
+            fail();
+        }
+    }
+
+    @Test
+    void parseHTTPPostMissingContentLengthRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithoutContentLengthTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+    }
+
+    @Test
+    void parseHTTPBodyTooLargeRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateOversizedBodyTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_413_CONTENT_TOO_LARGE);
+        }
+    }
+
+    @Test
+    void parseHTTPInvalidContentLengthRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateInvalidContentLengthTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+    }
+
+    @Test
+    void parseHTTPNegativeContentLengthRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateNegativeContentLengthTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+    }
+
+    @Test
+    void parseHTTPMissingContentLengthRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithoutContentLengthTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+        }
+    }
+
+    @Test
+    void parseHTTPTruncatedBodyRejected() {
+        try {
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateTruncatedBodyTestCase(), null);
+            fail();
+        } catch (HTTPParsingException e) {
+            assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         }
     }
 
@@ -259,6 +371,7 @@ public class HTTPParserTest {
     private InputStream generateValidHEADTestCase() {
         String rawData = "HEAD /index.html HTTP/1.1\r\n" +
                 "Host: localhost\r\n" +
+                "Content-Length: 0\r\n" +
                 "\r\n";
         InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
         return instream;
@@ -343,6 +456,97 @@ public class HTTPParserTest {
         String rawData = "GET /about HTTP/1.1\r\n" +
                 "Host: example.com\r\n" +
                 "Accept-Language: en-US\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateHeadWithBodyTestCase() {
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: 5\r\n" +
+                "\r\n" +
+                "hello";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateHeadWithoutContentLengthTestCase() {
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateOversizedBodyTestCase() {
+        StringBuilder body = new StringBuilder(HTTPRequest.MAX_BODY_LENGTH + 10);
+        for (int i = 0; i < HTTPRequest.MAX_BODY_LENGTH + 10; i++) {
+            body.append('a');
+        }
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: " + body.length() + "\r\n" +
+                "\r\n" +
+                body;
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateInvalidContentLengthTestCase() {
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: abc\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateNegativeContentLengthTestCase() {
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: -1\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generateTruncatedBodyTestCase() {
+        String rawData = "HEAD /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: 10\r\n" +
+                "\r\n" +
+                "short";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generatePostWithBodyTestCase() {
+        return this.generatePostWithBodyTestCase("name");
+    }
+
+    private InputStream generatePostWithBodyTestCase(String body) {
+        String rawData = "POST /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: " + body.getBytes(StandardCharsets.US_ASCII).length + "\r\n" +
+                "\r\n" +
+                body;
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generatePostZeroLengthBodyTestCase() {
+        String rawData = "POST /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
+                "Content-Length: 0\r\n" +
+                "\r\n";
+        InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
+        return instream;
+    }
+
+    private InputStream generatePostWithoutContentLengthTestCase() {
+        String rawData = "POST /submit HTTP/1.1\r\n" +
+                "Host: example.com\r\n" +
                 "\r\n";
         InputStream instream = new ByteArrayInputStream(rawData.getBytes(StandardCharsets.US_ASCII));
         return instream;

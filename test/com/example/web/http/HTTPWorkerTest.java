@@ -97,24 +97,63 @@ public class HTTPWorkerTest {
     }
 
     @Test
-    void nonexistentFileReturns400WithDefaultHeaders() throws Exception {
-        String response = sendRequest("GET /nope.html HTTP/1.1\r\nHost: localhost\r\n\r\n");
+    void postRequestReturns200WithHelloBody() throws Exception {
+        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nname");
 
-        assertTrue(response.startsWith("HTTP/1.1 400 Bad Request\r\n"));
+        assertTrue(response.startsWith("HTTP/1.1 200 Success\r\n"));
         assertTrue(response.contains("Content-Type:text/html; charset=UTF-8\r\n"));
         assertTrue(response.contains("Connection:close\r\n"));
-        assertTrue(response.contains("Content-Length:"));
+        assertTrue(response.contains("Hello"));
+    }
+
+    @Test
+    void postRequestBodyParsed() throws Exception {
+        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nname");
+
+        String body = response.split("\r\n\r\n", 2)[1];
+        assertEquals("Hello", body);
+    }
+
+    @Test
+    void postOversizedBodyReturns413() throws Exception {
+        StringBuilder body = new StringBuilder(HTTPRequest.MAX_BODY_LENGTH + 1);
+        for (int i = 0; i < HTTPRequest.MAX_BODY_LENGTH + 1; i++) {
+            body.append('a');
+        }
+        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: "
+                + body.length() + "\r\n\r\n" + body);
+
+        assertTrue(response.startsWith("HTTP/1.1 413 Content Too Large\r\n"));
+        assertTrue(response.contains("<h1>413 Content Too Large</h1>"));
+    }
+
+    @Test
+    void postWithoutContentLengthReturns400() throws Exception {
+        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\n\r\n");
+
+        assertTrue(response.startsWith("HTTP/1.1 400 Bad Request\r\n"));
         assertTrue(response.contains("<h1>400 Bad Request</h1>"));
     }
 
     @Test
-    void nonexistentFileReturns400WithErrorHtmlBody() throws Exception {
+    void nonexistentFileReturns404WithDefaultHeaders() throws Exception {
+        String response = sendRequest("GET /nope.html HTTP/1.1\r\nHost: localhost\r\n\r\n");
+
+        assertTrue(response.startsWith("HTTP/1.1 404 Not Found\r\n"));
+        assertTrue(response.contains("Content-Type:text/html; charset=UTF-8\r\n"));
+        assertTrue(response.contains("Connection:close\r\n"));
+        assertTrue(response.contains("Content-Length:"));
+        assertTrue(response.contains("<h1>404 Not Found</h1>"));
+    }
+
+    @Test
+    void nonexistentFileReturns404WithErrorHtmlBody() throws Exception {
         String response = sendRequest("GET /nope.html HTTP/1.1\r\nHost: localhost\r\n\r\n");
 
         String body = response.split("\r\n\r\n", 2)[1];
         assertTrue(body.contains("<html>"));
         assertTrue(body.contains("<body>"));
-        assertTrue(body.contains("<h1>400 Bad Request</h1>"));
+        assertTrue(body.contains("<h1>404 Not Found</h1>"));
         assertTrue(body.contains("</body>"));
         assertTrue(body.contains("</html>"));
     }
