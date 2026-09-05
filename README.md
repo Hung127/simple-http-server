@@ -38,7 +38,7 @@ simple-http-server/
 │   │           │   ├── HTTPRequest.java            # parsed request data
 │   │           │   ├── HTTPResponse.java           # built response (status line, headers, body)
 │   │           │   ├── HTTPParser.java             # request-line + header parsing
-│   │           │   ├── HTTPMethod.java             # enum GET / HEAD / ...
+│   │           │   ├── HTTPMethod.java             # enum GET / HEAD / POST
 │   │           │   ├── HTTPVersion.java            # enum + compatibility resolution
 │   │           │   ├── HTTPStatusCode.java         # status code enum
 │   │           │   ├── HTTPWorker.java             # per-connection response thread
@@ -76,18 +76,19 @@ The server is written by hand on raw sockets — no framework, not even `com.sun
 
 ### How a request is handled
 
-1. `HTTPParser` reads the request line (`GET / HTTP/1.1`) and headers, populating an `HTTPRequest`.
-2. On success, the status is set to `200`; on a parse error it is set from the thrown `HTTPParsingException`.
-3. `WebRootHandler.readFile()` loads the requested file from `webRoot`, resolving real paths so `..` segments and symlinks cannot escape (guards against path traversal).
-4. `HTTPResponse` serializes: status line → headers → blank line → body. `HTTPWorker` attaches default headers:
+1. `HTTPParser` reads the request line (`GET / HTTP/1.1`) and headers, populating an `HTTPRequest` (header *names* are lowercased, *values* keep their original case).
+2. For non-`GET` methods the request body is read from the socket, bounded by `Content-Length` (up to `HTTPRequest.MAX_BODY_LENGTH` = 1024 bytes; missing/invalid `Content-Length` → `400`, oversized bodies → `413`).
+3. On success the status is set to `200`; on a parse error it is set from the thrown `HTTPParsingException`.
+4. `WebRootHandler.readFile()` loads the requested file from `webRoot`, resolving real paths so `..` segments and symlinks cannot escape (guards against path traversal). A missing file gets a `404 Not Found` page; `POST` requests are answered with a placeholder `Hello` body.
+5. `HTTPResponse` serializes: status line → headers → blank line → body. `HTTPWorker` attaches default headers:
    - `Content-Type` derived from the file extension via `WebRootHandler.getContentType()` (falls back to `text/html` for error responses)
    - `Content-Length` computed from the body
    - `Connection: close`
-5. Non-`200` responses get a simple HTML error body.
+6. Non-`200` responses get a simple HTML error body.
 
 The **static site** in `src/com/resources/web` (a small article-style multi-page site with shared navigation) exercises the server end to end, serving HTML, CSS, and SVG.
 
-Roadmap: request bodies (`POST`/`PUT`/`DELETE`) → routing → JSON REST API → simple browser frontend → thread pooling / connection keep-alive.
+Roadmap: routing / `PUT` & `DELETE` → JSON REST API → simple browser frontend → thread pooling / connection keep-alive.
 
 ## Compilation & Running
 
