@@ -1,6 +1,6 @@
 package com.example.web.http;
 
-public class BadHTTPHeaderException extends Exception {
+public class BadHTTPHeaderException extends RuntimeException {
 
     public BadHTTPHeaderException() {
         super();

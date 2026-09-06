@@ -14,14 +14,9 @@ import org.junit.jupiter.api.TestInstance;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class HTTPResponseTest {
 
-    private HTTPRequest createDefaultRequest() throws BadHTTPVersionException {
-        return new HTTPRequest(HTTPMethod.GET, "/", "HTTP/1.1");
-    }
-
     @Test
-    void setAndGetStatusCode() throws BadHTTPVersionException {
+    void setAndGetStatusCode() {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
         assertEquals(HTTPStatusCode.SUCCESS_200, response.getStatusCode());
     }
@@ -47,9 +42,16 @@ public class HTTPResponseTest {
     }
 
     @Test
-    void setRequestThrowsOnNull() {
+    void setAndGetVersion() {
         HTTPResponse response = new HTTPResponse();
-        assertThrows(NullPointerException.class, () -> response.setRequest(null));
+        response.setVersion(HTTPVersion.HTTP_1_1);
+        assertEquals(HTTPVersion.HTTP_1_1, response.getVersion());
+    }
+
+    @Test
+    void setVersionThrowsOnNull() {
+        HTTPResponse response = new HTTPResponse();
+        assertThrows(NullPointerException.class, () -> response.setVersion(null));
     }
 
     @Test
@@ -105,7 +107,6 @@ public class HTTPResponseTest {
     @Test
     void toByteArrayWithBodyAndHeaders() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
         response.setHeaderValue("Content-Type", "text/html");
         response.setHeaderValue("Connection", "close");
@@ -127,7 +128,6 @@ public class HTTPResponseTest {
     @Test
     void toByteArrayWithEmptyBody() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
         response.setHeaderValue("Content-Type", "text/html");
         response.setHeaderValue("Content-Length", "0");
@@ -143,7 +143,6 @@ public class HTTPResponseTest {
     @Test
     void toByteArrayNoHeaders() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
 
         byte[] result = response.toByteArray();
@@ -155,7 +154,6 @@ public class HTTPResponseTest {
     @Test
     void toByteArrayErrorStatus() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
         byte[] body = "<html><body><h1>400 Bad Request</h1></body></html>".getBytes(StandardCharsets.UTF_8);
         response.setBody(body);
@@ -174,7 +172,6 @@ public class HTTPResponseTest {
     @Test
     void toByteArray500Status() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
 
         byte[] result = response.toByteArray();
@@ -186,7 +183,6 @@ public class HTTPResponseTest {
     @Test
     void headerValuesPreservedExactly() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
         response.setHeaderValue("X-Custom-Header", "my-custom-value");
 
@@ -199,7 +195,6 @@ public class HTTPResponseTest {
     @Test
     void multipleHeadersSerialized() throws Exception {
         HTTPResponse response = new HTTPResponse();
-        response.setRequest(createDefaultRequest());
         response.setStatusCode(HTTPStatusCode.SUCCESS_200);
         response.setHeaderValue("Content-Type", "text/plain");
         response.setHeaderValue("X-Foo", "bar");

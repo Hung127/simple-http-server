@@ -8,8 +8,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.example.web.utils.WebRootHandler;
-
 public class HTTPParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(HTTPParser.class);
     private static final int SP = (int) ' ';
@@ -19,7 +17,7 @@ public class HTTPParser {
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile(
             "^(?<name>[!#$%&'*+\\-.^_`|~0-9A-Za-z]+):[ \\t]*(?<value>.*?)[ \\t]*$");
 
-    private void parseRequestLine(InputStream in, HTTPRequest request, WebRootHandler webRoot)
+    private void parseRequestLine(InputStream in, HTTPRequest request)
             throws HTTPParsingException {
         // format: method SP target SP version CRLF
         int _byte;
@@ -163,12 +161,12 @@ public class HTTPParser {
         }
     }
 
-    public HTTPRequest parseHTTPRequest(InputStream inStream, WebRootHandler webRootHandler)
+    public HTTPRequest parseHTTPRequest(InputStream inStream)
             throws HTTPParsingException {
         HTTPRequest request = new HTTPRequest();
 
         // TODO: Builder pattern
-        this.parseRequestLine(inStream, request, webRootHandler);
+        this.parseRequestLine(inStream, request);
         this.parseRequestHeader(inStream, request);
         this.parseRequestBody(inStream, request);
 

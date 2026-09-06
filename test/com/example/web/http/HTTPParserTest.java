@@ -24,7 +24,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPMethodRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase());
             assertEquals(request.getMethod(), HTTPMethod.GET);
         } catch (HTTPParsingException e) {
             fail();
@@ -34,7 +34,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPBadMethodRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateBadMethodTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateBadMethodTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.SERVER_ERROR_501_NOT_IMPLEMENTED);
@@ -44,7 +44,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPLongMethodRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLongMethodTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLongMethodTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.SERVER_ERROR_501_NOT_IMPLEMENTED);
@@ -54,7 +54,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPInvalidNumberItemRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateInvalidNumberItemTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateInvalidNumberItemTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -64,7 +64,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPEmptyRequestLine() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateEmptyRequestLineTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateEmptyRequestLineTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -74,7 +74,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPValidHEADRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidHEADTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidHEADTestCase());
             assertEquals(request.getMethod(), HTTPMethod.HEAD);
             assertEquals(request.getTarget(), "/index.html");
             assertEquals(request.getBody().length, 0);
@@ -86,7 +86,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPValidGETChecksTarget() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase());
             assertEquals(request.getMethod(), HTTPMethod.GET);
             assertEquals(request.getTarget(), "/");
         } catch (HTTPParsingException e) {
@@ -97,7 +97,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPLFWithoutCR() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLFWithoutCRTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLFWithoutCRTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -107,7 +107,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPCRWithoutLF() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateCRWithoutLFTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateCRWithoutLFTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -117,7 +117,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPMissingTargetRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingTargetTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingTargetTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -127,7 +127,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPEmptyMethodRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingMethodTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateMissingMethodTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.SERVER_ERROR_501_NOT_IMPLEMENTED);
@@ -137,7 +137,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPValidVersion() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateValidGETTestCase());
             assertEquals(request.getOriginalVersion(), "HTTP/1.1");
             assertEquals(request.getBestCompatibleHTTPVersion(), HTTPVersion.HTTP_1_1);
         } catch (HTTPParsingException e) {
@@ -148,7 +148,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPHigherMinorVersion() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHigherMinorVersionTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHigherMinorVersionTestCase());
             assertEquals(request.getOriginalVersion(), "HTTP/1.2");
             assertEquals(request.getBestCompatibleHTTPVersion(), HTTPVersion.HTTP_1_1);
         } catch (HTTPParsingException e) {
@@ -159,7 +159,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPUnsupportedLowerMinorVersion() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLowerMinorVersionTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateLowerMinorVersionTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.SERVER_ERROR_505_HTTP_VERSION_NOT_SUPPORTED);
@@ -169,7 +169,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPUnsupportedHigherMajorVersion() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHigherMajorVersionTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHigherMajorVersionTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.SERVER_ERROR_505_HTTP_VERSION_NOT_SUPPORTED);
@@ -179,7 +179,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPBadVersionFormat() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateBadVersionFormatTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateBadVersionFormatTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -189,7 +189,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPCompleteValidRequest() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateCompleteValidRequestTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateCompleteValidRequestTestCase());
             assertEquals(request.getMethod(), HTTPMethod.HEAD);
             assertEquals(request.getTarget(), "/submit");
             assertEquals(request.getOriginalVersion(), "HTTP/1.1");
@@ -206,7 +206,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPFullValidGETRequestWithHeaders() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateFullValidGETWithHeadersTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateFullValidGETWithHeadersTestCase());
             assertEquals(request.getMethod(), HTTPMethod.GET);
             assertEquals(request.getTarget(), "/about");
             assertEquals(request.getOriginalVersion(), "HTTP/1.1");
@@ -221,7 +221,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPHeadRequestWithBody() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithBodyTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithBodyTestCase());
             assertEquals(request.getMethod(), HTTPMethod.HEAD);
             assertEquals(request.getHeaderValue("content-length"), "5");
             assertArrayEquals(new byte[]{104, 101, 108, 108, 111}, request.getBody());
@@ -233,7 +233,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPPostRequestWithBody() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase());
             assertEquals(request.getMethod(), HTTPMethod.POST);
             assertEquals(request.getHeaderValue("content-length"), "4");
             assertArrayEquals("name".getBytes(StandardCharsets.US_ASCII), request.getBody());
@@ -249,7 +249,7 @@ public class HTTPParserTest {
             for (int i = 0; i < HTTPRequest.MAX_BODY_LENGTH; i++) {
                 body.append('a');
             }
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase(body.toString()), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithBodyTestCase(body.toString()));
             assertEquals(request.getMethod(), HTTPMethod.POST);
             assertArrayEquals(body.toString().getBytes(StandardCharsets.US_ASCII), request.getBody());
         } catch (HTTPParsingException e) {
@@ -260,7 +260,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPPostZeroLengthBody() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostZeroLengthBodyTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostZeroLengthBodyTestCase());
             assertEquals(request.getMethod(), HTTPMethod.POST);
             assertEquals(0, request.getBody().length);
         } catch (HTTPParsingException e) {
@@ -271,7 +271,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPPostMissingContentLengthRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithoutContentLengthTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generatePostWithoutContentLengthTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -281,7 +281,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPBodyTooLargeRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateOversizedBodyTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateOversizedBodyTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_413_CONTENT_TOO_LARGE);
@@ -291,7 +291,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPInvalidContentLengthRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateInvalidContentLengthTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateInvalidContentLengthTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -301,7 +301,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPNegativeContentLengthRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateNegativeContentLengthTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateNegativeContentLengthTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -311,7 +311,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPMissingContentLengthRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithoutContentLengthTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateHeadWithoutContentLengthTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
@@ -321,7 +321,7 @@ public class HTTPParserTest {
     @Test
     void parseHTTPTruncatedBodyRejected() {
         try {
-            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateTruncatedBodyTestCase(), null);
+            HTTPRequest request = this.httpParser.parseHTTPRequest(this.generateTruncatedBodyTestCase());
             fail();
         } catch (HTTPParsingException e) {
             assertEquals(e.getErrorCode(), HTTPStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
