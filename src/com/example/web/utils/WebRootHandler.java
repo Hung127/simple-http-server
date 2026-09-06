@@ -1,8 +1,13 @@
 package com.example.web.utils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import com.example.web.http.BadHTTPHeaderException;
+import com.example.web.http.HTTPResponse;
+import com.example.web.http.HTTPStatusCode;
 
 public class WebRootHandler {
     private final Path root;
@@ -43,37 +48,7 @@ public class WebRootHandler {
         }
     }
 
-    public String getTextFileContent(String requestPath) throws IOException, BadRootPathException {
-        if (requestPath == null) {
-            throw new NullPointerException();
-        }
-
-        String normalizedRelativePath = requestPath;
-
-        if (requestPath.endsWith("/")) {
-            normalizedRelativePath = requestPath + "index.html";
-        }
-
-        normalizedRelativePath = normalizedRelativePath.startsWith("/")
-                ? normalizedRelativePath.substring(1) // skip first char if it is /
-                : normalizedRelativePath;
-
-        Path fullPath = null;
-
-        try {
-            fullPath = this.completePath(normalizedRelativePath);
-        } catch (IOException e) {
-            throw new BadRootPathException();
-        }
-
-        if (!this.relativePathExistsFile(normalizedRelativePath)) {
-            throw new BadRootPathException();
-        }
-
-        return Files.readString(fullPath);
-    }
-
-    public byte[] readFile(String requestPath) throws IOException, BadRootPathException {
+    private byte[] getData(String requestPath) throws IOException, BadRootPathException {
         if (requestPath == null) {
             throw new NullPointerException();
         }
@@ -103,7 +78,7 @@ public class WebRootHandler {
         return Files.readAllBytes(fullPath);
     }
 
-    public String getContentType(String requestPath) throws BadRootPathException {
+    private String getContentType(String requestPath) throws BadRootPathException {
         if (requestPath == null) {
             throw new NullPointerException();
         }
@@ -162,4 +137,34 @@ public class WebRootHandler {
         return "application/octet-stream";
     }
 
+    public HTTPResponse handle(String targetPath) {
+
+        HTTPResponse response = new HTTPResponse();
+        try {
+            byte[] body = this.getData(targetPath);
+            String contentType = this.getContentType(targetPath);
+            response.setHeaderValue("Content-Type", contentType);
+            response.setBody(body);
+            response.setStatusCode(HTTPStatusCode.SUCCESS_200);
+        } catch (BadRootPathException e) {
+            response.setStatusCode(HTTPStatusCode.CLIENT_ERROR_404_NOT_FOUND);
+            this.setDefaultErrorBody(response);
+        } catch (IOException | BadHTTPHeaderException e) {
+            response.setStatusCode(HTTPStatusCode.SERVER_ERROR_500_INTERNAL_SERVER_ERROR);
+            this.setDefaultErrorBody(response);
+        }
+        return response;
+    }
+
+    private void setDefaultErrorBody(HTTPResponse response) {
+        try {
+            response.setHeaderValue("Content-Type", "text/html; charset=UTF-8");
+        } catch (BadHTTPHeaderException e) {
+            // do nothing
+        }
+
+        String errorMsg = response.getStatusCode().STATUS_CODE + " " + response.getStatusCode().MESSAGE;
+        String errorHtml = "<html><body><h1>" + errorMsg + "</h1></body></html>";
+        response.setBody(errorHtml.getBytes(StandardCharsets.UTF_8));
+    }
 }

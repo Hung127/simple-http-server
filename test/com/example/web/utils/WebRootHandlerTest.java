@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -11,6 +12,9 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.example.web.http.HTTPResponse;
+import com.example.web.http.HTTPStatusCode;
 
 class WebRootHandlerTest {
 
@@ -29,11 +33,29 @@ class WebRootHandlerTest {
         Files.writeString(webRootDir.resolve("nested/index.html"), "NESTED_INDEX");
     }
 
+    private WebRootHandler handler() throws IOException {
+        return new WebRootHandler(webRootDir.toString());
+    }
+
+    private HTTPResponse response(WebRootHandler handler, String path) {
+        return handler.handle(path);
+    }
+
+    private String content(WebRootHandler handler, String path) {
+        HTTPResponse resp = handler.handle(path);
+        assertEquals(HTTPStatusCode.SUCCESS_200, resp.getStatusCode());
+        return new String(resp.getBody(), StandardCharsets.UTF_8);
+    }
+
+    private void assertNotFound(WebRootHandler handler, String path) {
+        assertEquals(HTTPStatusCode.CLIENT_ERROR_404_NOT_FOUND, handler.handle(path).getStatusCode());
+    }
+
     // ---------- Root initialization ----------
 
     @Test
     void acceptsValidExistingDirectoryRoot() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
+        WebRootHandler handler = handler();
         org.junit.jupiter.api.Assertions.assertNotNull(handler);
     }
 
@@ -55,14 +77,14 @@ class WebRootHandlerTest {
     }
 
     @Test
-    void acceptsRelativeRootPath() throws IOException, BadRootPathException {
+    void acceptsRelativeRootPath() throws IOException {
         String relName = "webroot-relative-test";
         Path relativeRoot = Path.of(relName);
         try {
             Files.createDirectories(relativeRoot);
             Files.writeString(relativeRoot.resolve("index.html"), "RELATIVE_HOME");
             WebRootHandler handler = new WebRootHandler(relName);
-            assertEquals("RELATIVE_HOME", handler.getTextFileContent("/index.html"));
+            assertEquals("RELATIVE_HOME", content(handler, "/index.html"));
         } finally {
             Files.deleteIfExists(relativeRoot.resolve("index.html"));
             Files.deleteIfExists(relativeRoot);
@@ -70,101 +92,99 @@ class WebRootHandlerTest {
     }
 
     @Test
-    void behavesCorrectlyWithTrailingSlashRoot() throws IOException, BadRootPathException {
+    void behavesCorrectlyWithTrailingSlashRoot() throws IOException {
         String withSlash = webRootDir.toString() + "/";
         String withoutSlash = webRootDir.toString();
         WebRootHandler a = new WebRootHandler(withSlash);
         WebRootHandler b = new WebRootHandler(withoutSlash);
         org.junit.jupiter.api.Assertions.assertNotNull(a);
         org.junit.jupiter.api.Assertions.assertNotNull(b);
-        assertEquals("HOME_INDEX", a.getTextFileContent("/index.html"));
-        assertEquals("HOME_INDEX", b.getTextFileContent("/index.html"));
+        assertEquals("HOME_INDEX", content(a, "/index.html"));
+        assertEquals("HOME_INDEX", content(b, "/index.html"));
     }
 
     // ---------- Basic HTTP paths ----------
 
     @Test
-    void servesIndexHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("HOME_INDEX", handler.getTextFileContent("/index.html"));
+    void servesIndexHtml() throws IOException {
+        assertEquals("HOME_INDEX", content(handler(), "/index.html"));
     }
 
     @Test
-    void servesFooHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("FOO_HTML", handler.getTextFileContent("/foo.html"));
+    void servesFooHtml() throws IOException {
+        assertEquals("FOO_HTML", content(handler(), "/foo.html"));
     }
 
     @Test
-    void servesCssStyle() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("CSS_CONTENT", handler.getTextFileContent("/css/style.css"));
+    void servesCssStyle() throws IOException {
+        assertEquals("CSS_CONTENT", content(handler(), "/css/style.css"));
     }
 
     @Test
-    void servesNestedIndexHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("NESTED_INDEX", handler.getTextFileContent("/nested/index.html"));
+    void servesNestedIndexHtml() throws IOException {
+        assertEquals("NESTED_INDEX", content(handler(), "/nested/index.html"));
     }
 
     // ---------- Directory index behavior ----------
 
     @Test
-    void servesRootPathIndexHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("HOME_INDEX", handler.getTextFileContent("/"));
+    void servesRootPathIndexHtml() throws IOException {
+        assertEquals("HOME_INDEX", content(handler(), "/"));
     }
 
     @Test
-    void servesNestedDirectoryIndexHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("NESTED_INDEX", handler.getTextFileContent("/nested/"));
+    void servesNestedDirectoryIndexHtml() throws IOException {
+        assertEquals("NESTED_INDEX", content(handler(), "/nested/"));
     }
 
     @Test
-    void pathEndingInSlashAppendsIndexHtml() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        String result = handler.getTextFileContent("/nested/");
-        assertEquals("NESTED_INDEX", result);
+    void pathEndingInSlashAppendsIndexHtml() throws IOException {
+        assertEquals("NESTED_INDEX", content(handler(), "/nested/"));
     }
 
     @Test
     void rejectsDirectoryWithoutIndexHtml() throws IOException {
         Files.createDirectories(webRootDir.resolve("empty-dir"));
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/empty-dir/"));
+        assertNotFound(handler(), "/empty-dir/");
     }
 
     // ---------- Relative request paths (no leading slash) ----------
 
     @Test
-    void supportsRequestPathWithoutLeadingSlash() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("HOME_INDEX", handler.getTextFileContent("index.html"));
-        assertEquals("CSS_CONTENT", handler.getTextFileContent("css/style.css"));
+    void supportsRequestPathWithoutLeadingSlash() throws IOException {
+        WebRootHandler handler = handler();
+        assertEquals("HOME_INDEX", content(handler, "index.html"));
+        assertEquals("CSS_CONTENT", content(handler, "css/style.css"));
+    }
+
+    // ---------- Content-Type headers ----------
+
+    @Test
+    void setsContentTypeHeader() throws IOException {
+        WebRootHandler handler = handler();
+        assertEquals("text/html; charset=UTF-8", response(handler, "/index.html").getHeaderValue("content-type"));
+        assertEquals("text/css; charset=UTF-8", response(handler, "/css/style.css").getHeaderValue("content-type"));
+        assertEquals("application/javascript", response(handler, "/js/app.js").getHeaderValue("content-type"));
     }
 
     // ---------- Path normalization ----------
 
     @Test
-    void resolvesHarmlessDotSegmentInMiddle() throws IOException, BadRootPathException {
+    void resolvesHarmlessDotSegmentInMiddle() throws IOException {
         Files.createDirectories(webRootDir.resolve("foo"));
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("HOME_INDEX", handler.getTextFileContent("/foo/../index.html"));
+        assertEquals("HOME_INDEX", content(handler(), "/foo/../index.html"));
     }
 
     @Test
     void rejectsDotSegmentWithNonExistentIntermediateDirectory() throws IOException {
         // toRealPath() requires every directory in the path to exist on disk,
         // so a dot-segment through a missing directory is rejected.
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/nope/../index.html"));
+        assertNotFound(handler(), "/nope/../index.html");
     }
 
     @Test
-    void resolvesParentSegmentStayingInsideWebRoot() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("FOO_HTML", handler.getTextFileContent("/nested/../foo.html"));
+    void resolvesParentSegmentStayingInsideWebRoot() throws IOException {
+        assertEquals("FOO_HTML", content(handler(), "/nested/../foo.html"));
     }
 
     // ---------- Path traversal protection ----------
@@ -174,8 +194,7 @@ class WebRootHandlerTest {
         Path secret = webRootDir.getParent().resolve("secret.txt");
         Files.writeString(secret, "SECRET");
         try {
-            WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-            assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/../secret.txt"));
+            assertNotFound(handler(), "/../secret.txt");
         } finally {
             Files.deleteIfExists(secret);
         }
@@ -183,8 +202,7 @@ class WebRootHandlerTest {
 
     @Test
     void rejectsDoubleParentTraversal() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/../../secret.txt"));
+        assertNotFound(handler(), "/../../secret.txt");
     }
 
     @Test
@@ -192,9 +210,7 @@ class WebRootHandlerTest {
         Path secret = webRootDir.getParent().resolve("secret2.txt");
         Files.writeString(secret, "SECRET");
         try {
-            WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-            assertThrows(BadRootPathException.class,
-                    () -> handler.getTextFileContent("/nested/../../secret2.txt"));
+            assertNotFound(handler(), "/nested/../../secret2.txt");
         } finally {
             Files.deleteIfExists(secret);
         }
@@ -202,84 +218,77 @@ class WebRootHandlerTest {
 
     @Test
     void rejectsEscapeToEtcPasswd() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class,
-                () -> handler.getTextFileContent("/foo/../../../etc/passwd"));
+        assertNotFound(handler(), "/foo/../../../etc/passwd");
     }
 
     // ---------- Boundary cases ----------
 
     @Test
     void rejectsNonexistentFile() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/nope.html"));
+        assertNotFound(handler(), "/nope.html");
     }
 
     @Test
     void rejectsEmptyRequestPath() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
         // Empty path resolves to the root directory, which is not a regular file.
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent(""));
+        assertNotFound(handler(), "");
     }
 
     @Test
     void rejectsNullRequestPath() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(NullPointerException.class, () -> handler.getTextFileContent(null));
+        assertThrows(NullPointerException.class, () -> response(handler(), null));
     }
 
     @Test
-    void servesFilePathSlash() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("HOME_INDEX", handler.getTextFileContent("/"));
+    void servesFilePathSlash() throws IOException {
+        assertEquals("HOME_INDEX", content(handler(), "/"));
     }
 
     @Test
     void rejectsDirectoryAsFile() throws IOException {
         Files.createDirectories(webRootDir.resolve("real-dir"));
         Files.writeString(webRootDir.resolve("real-dir/other.html"), "OTHER");
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
         // /real-dir is a directory, not a regular file -> rejected.
-        assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/real-dir"));
+        assertNotFound(handler(), "/real-dir");
     }
 
     @Test
-    void servesFilenameWithSpaces() throws IOException, BadRootPathException {
+    void servesFilenameWithSpaces() throws IOException {
         Files.writeString(webRootDir.resolve("my page.html"), "PAGE_WITH_SPACE");
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("PAGE_WITH_SPACE", handler.getTextFileContent("/my page.html"));
+        assertEquals("PAGE_WITH_SPACE", content(handler(), "/my page.html"));
     }
 
     @Test
-    void servesUnicodeFilename() throws IOException, BadRootPathException {
+    void servesUnicodeFilename() throws IOException {
         Files.writeString(webRootDir.resolve("café.html"), "CAFE");
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("CAFE", handler.getTextFileContent("/café.html"));
+        assertEquals("CAFE", content(handler(), "/café.html"));
     }
 
     @Test
-    void servesDeeplyNestedPath() throws IOException, BadRootPathException {
+    void servesDeeplyNestedPath() throws IOException {
         Path deep = webRootDir.resolve("a/b/c/d.txt");
         Files.createDirectories(deep.getParent());
         Files.writeString(deep, "DEEP");
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("DEEP", handler.getTextFileContent("/a/b/c/d.txt"));
+        assertEquals("DEEP", content(handler(), "/a/b/c/d.txt"));
     }
 
     // ---------- File contents and errors ----------
 
     @Test
-    void returnsExactFileContents() throws IOException, BadRootPathException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertEquals("FOO_HTML", handler.getTextFileContent("/foo.html"));
-        assertEquals("CSS_CONTENT", handler.getTextFileContent("/css/style.css"));
+    void returnsExactFileContents() throws IOException {
+        WebRootHandler handler = handler();
+        assertEquals("FOO_HTML", content(handler, "/foo.html"));
+        assertEquals("CSS_CONTENT", content(handler, "/css/style.css"));
     }
 
     @Test
-    void invalidOutsidePathThrowsBadRootPathException() throws IOException {
-        WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-        assertThrows(BadRootPathException.class,
-                () -> handler.getTextFileContent("/../../does-not-matter"));
+    void invalidOutsidePathReturns404() throws IOException {
+        assertNotFound(handler(), "/../../does-not-matter");
+    }
+
+    @Test
+    void malformedPathReturns404() throws IOException {
+        assertNotFound(handler(), "/foo/../../../secret.txt");
     }
 
     // ---------- Symlink security ----------
@@ -297,9 +306,8 @@ class WebRootHandlerTest {
             } catch (IOException | UnsupportedOperationException e) {
                 Assumptions.abort("symlinks not supported on this filesystem");
             }
-            WebRootHandler handler = new WebRootHandler(webRootDir.toString());
             // A symlink pointing outside the root must not expose the outside file.
-            assertThrows(BadRootPathException.class, () -> handler.getTextFileContent("/evil-link"));
+            assertNotFound(handler(), "/evil-link");
         } finally {
             if (symlinkCreated) {
                 Files.deleteIfExists(link);
@@ -309,7 +317,7 @@ class WebRootHandlerTest {
     }
 
     @Test
-    void servesFileThroughSymlinkInsideWebRoot() throws IOException, BadRootPathException {
+    void servesFileThroughSymlinkInsideWebRoot() throws IOException {
         String targetName = "shared.txt";
         Files.writeString(webRootDir.resolve(targetName), "SHARED_CONTENT");
         Path link = webRootDir.resolve("alias-link");
@@ -321,8 +329,7 @@ class WebRootHandlerTest {
             } catch (IOException | UnsupportedOperationException e) {
                 Assumptions.abort("symlinks not supported on this filesystem");
             }
-            WebRootHandler handler = new WebRootHandler(webRootDir.toString());
-            assertEquals("SHARED_CONTENT", handler.getTextFileContent("/alias-link"));
+            assertEquals("SHARED_CONTENT", content(handler(), "/alias-link"));
         } finally {
             if (symlinkCreated) {
                 Files.deleteIfExists(link);
