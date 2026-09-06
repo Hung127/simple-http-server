@@ -12,6 +12,7 @@
             <a href="/">Home</a>
             <a href="/methods.html">HTTP Methods</a>
             <a href="/status-codes.html">Status Codes</a>
+            <a href="/api.html">API</a>
             <a class="active" href="/roadmap.html">Roadmap</a>
         </nav>
         <header>
@@ -23,18 +24,18 @@
         <p>This project is a learning journey: build a real HTTP server by hand, then layer on features one at a time. Here is the roadmap we are following.</p>
 
         <h2>Done So Far</h2>
-        <p>Raw socket handling, one thread per connection, HTTP request parsing (<code>GET</code>/<code>HEAD</code>), safe static file serving with path-traversal protection, correct <code>Content-Type</code> for common files, and default headers on every response. All of it is unit-tested.</p>
+        <p>Phase B is complete: the method enum covers <code>GET</code>/<code>HEAD</code>/<code>POST</code>/<code>PUT</code>/<code>DELETE</code>, non-GET methods read a request body bounded by <code>Content-Length</code> (oversized bodies get <code>413</code>), and the server returns the status codes it needs — <code>200</code>, <code>201</code>, <code>400</code>, <code>404</code>, <code>413</code>, <code>414</code>, <code>500</code>, <code>501</code>, <code>505</code>. Phase C is also done: a path-aware <code>Router</code> dispatches <code>/api/*</code> requests by method and path, extracts <code>{id}</code> path variables, parses JSON bodies, and hands off to a <code>TodoStore</code> (backed by a <code>ConcurrentHashMap</code> with <code>AtomicLong</code> ids). All five todo endpoints are wired and unit-tested.</p>
 
         <h2>Next Up</h2>
-        <p>Support for request bodies, which unlocks <code>POST</code>, <code>PUT</code>, and <code>DELETE</code>. From there we can add real routing and a small JSON REST API backed by the Jackson library already sitting in <code>lib/</code>.</p>
+        <p>Phase D: replace the unbounded one-thread-per-connection model with an <code>ExecutorService</code> fixed thread pool. Phase E: a single-page browser frontend using <code>fetch()</code> against the todo API. We would also like to use conventional reason phrases (<code>OK</code> instead of <code>Success</code>), consistent header spacing, and request logging via the SLF4J setup already in <code>lib/</code>.</p>
 
         <h2>Eventually</h2>
-        <p>A simple browser frontend to exercise the API, and maybe request logging with the SLF4J setup that is already wired in. The goal is to reach a point where the server can serve a useful site end to end.</p>
+        <p>Persistent storage for the todo store so data survives a restart, plus repeated-request handling via keep-alive connections instead of closing the socket after every response.</p>
 
         <blockquote>"Building it by hand first makes every framework you meet later feel like magic you can peek under."</blockquote>
 
         <footer>
-            <p>Served by a hand-written Java HTTP server. See the <a href="/status-codes.html">status codes</a> it returns along the way.</p>
+            <p>Served by a hand-written Java HTTP server. See the <a href="/status-codes.html">status codes</a> it returns along the way, or try <a href="/api.html">the API</a>.</p>
         </footer>
     </div>
 </body>

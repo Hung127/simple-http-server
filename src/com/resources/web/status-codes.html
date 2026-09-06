@@ -12,6 +12,7 @@
             <a href="/">Home</a>
             <a href="/methods.html">HTTP Methods</a>
             <a class="active" href="/status-codes.html">Status Codes</a>
+            <a href="/api.html">API</a>
             <a href="/roadmap.html">Roadmap</a>
         </nav>
         <header>
@@ -22,14 +23,14 @@
 
         <p>After processing a request, the server returns a three-digit status code that tells the client how it went. Our server models these in the <code>HTTPStatusCode</code> enum, each carrying a numeric code and a human-readable message.</p>
 
-        <h2>Success: 200</h2>
-        <p>Everything worked. The server found the requested file and is sending it back. This is the response you see when loading any of the pages on this site.</p>
+        <h2>Success: 200, 201</h2>
+        <p>Everything worked. <code>200 Success</code> is returned for static files, list/fetch/update/delete API calls; <code>201 Created</code> accompanies a successful <code>POST</code>.</p>
 
-        <h2>Client Errors: 400, 401, 414</h2>
-        <p>These mean the request itself was malformed or impossible. A <code>400 Bad Request</code> appears when the request line is malformed or headers are invalid. <code>414 URI Too Long</code> guards against oversized request targets.</p>
+        <h2>Client Errors: 400, 404, 413, 414</h2>
+        <p>These mean the request itself was malformed or impossible. <code>400 Bad Request</code> appears when the request line or headers are invalid — or when an API call is missing a required JSON field. <code>404 Not Found</code> covers missing files and unknown API routes. <code>413 Content Too Large</code> guards against oversized request bodies, while <code>414 URI Too Long</code> caps excessive request targets.</p>
 
         <h2>Server Errors: 500, 501, 505</h2>
-        <p>These indicate the server could not fulfill an otherwise valid request. <code>500 Internal Server Error</code> flags an unexpected failure handling a file. <code>501 Not Implemented</code> is returned for methods we do not support yet. <code>505 HTTP Version Not Supported</code> rejects requests from an unknown protocol version.</p>
+        <p>These indicate the server could not fulfill an otherwise valid request. <code>500 Internal Server Error</code> flags an unexpected failure handling a file. <code>501 Not Implemented</code> is returned for methods we do not support. <code>505 HTTP Version Not Supported</code> rejects requests from an unknown protocol version.</p>
 
         <blockquote>"A good status code turns a vague failure into an actionable one."</blockquote>
 

@@ -12,6 +12,7 @@
             <a class="active" href="/">Home</a>
             <a href="/methods.html">HTTP Methods</a>
             <a href="/status-codes.html">Status Codes</a>
+            <a href="/api.html">API</a>
             <a href="/roadmap.html">Roadmap</a>
         </nav>
         <header>
@@ -37,6 +38,11 @@
 
         <h2>Why Build It By Hand?</h2>
         <p>Reading and writing raw HTTP changes how you think about the web. Serving a stylesheet, an image, or a page is the same flow: parse the request, resolve the file, send it back with the right headers. Once the fundamentals are in place, layers like routing and JSON APIs slot in naturally.</p>
+
+        <h2>Beyond Static Files</h2>
+        <p>The same request pipeline doubles as an API gateway. Requests for <code>/api/...</code> skip the file system and hit a <code>Router</code> instead: it matches the method and path, pulls path variables out of the URL, parses any JSON body, and hands off to an endpoint handler. Try it yourself — the todo API is documented and exercised with curl on the <a href="/api.html">API page</a>.</p>
+
+        <blockquote>"Server static files and a JSON API with the same parser, same headers, same worker — that is the whole trick of HTTP routing."</blockquote>
 
         <footer>
             <p>Served by a hand-written Java HTTP server. Check the source in <code>src/com/example/web</code>.</p>

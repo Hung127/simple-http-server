@@ -126,6 +126,63 @@ a:hover {
     text-decoration: underline;
 }
 
+code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    background: #f4f0ea;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    color: #9a3f24;
+}
+
+pre {
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    background: #2d2d2d;
+    color: #f0edea;
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.2rem 0;
+}
+
+pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+ul, ol {
+    margin: 0 0 1.1rem 1.4rem;
+}
+
+li {
+    margin-bottom: 0.3rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+}
+
+thead {
+    background: #f4f0ea;
+}
+
+th, td {
+    border: 1px solid #e8e4de;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    font-family: 'Trebuchet MS', sans-serif;
+    color: #1d1d1d;
+}
+
 footer {
     margin-top: 2rem;
     padding-top: 1rem;

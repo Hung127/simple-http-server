@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST API</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/methods.html">HTTP Methods</a>
+            <a href="/status-codes.html">Status Codes</a>
+            <a class="active" href="/api.html">API</a>
+            <a href="/roadmap.html">Roadmap</a>
+        </nav>
+        <header>
+            <div class="eyebrow">REST API</div>
+            <h1>The Todo REST API</h1>
+            <div class="byline">Routing + JSON, all served by one hand-written server · September 2026</div>
+        </header>
+
+        <p>Once routing was in place, our server grew a small REST API. Requests whose target begins with <code>/api/</code> are handed to a router instead of the file system; the router matches method and path, extracts path variables, parses the JSON body, and dispatches to an endpoint handler.</p>
+
+        <h2>Endpoints</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Purpose</th>
+                    <th>Success</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/todos</code></td>
+                    <td>List all todos</td>
+                    <td><code>200</code></td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/api/todos/{id}</code></td>
+                    <td>Fetch a single todo</td>
+                    <td><code>200</code></td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/api/todos</code></td>
+                    <td>Create a todo</td>
+                    <td><code>201</code></td>
+                </tr>
+                <tr>
+                    <td><code>PUT</code></td>
+                    <td><code>/api/todos/{id}</code></td>
+                    <td>Update a todo (partial)</td>
+                    <td><code>200</code></td>
+                </tr>
+                <tr>
+                    <td><code>DELETE</code></td>
+                    <td><code>/api/todos/{id}</code></td>
+                    <td>Delete a todo</td>
+                    <td><code>200</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <pre><code>// a todo
+{
+    "id": 1,
+    "title": "learn http",
+    "completed": false
+}</code></pre>
+
+        <h2>Try It With curl</h2>
+        <p>The server listens on port <code>8080</code> and seeds three todos, so ids <code>1</code>–<code>3</code> exist at startup.</p>
+
+        <p>List all todos:</p>
+        <pre><code>curl http://localhost:8080/api/todos</code></pre>
+
+        <p>Fetch one:</p>
+        <pre><code>curl http://localhost:8080/api/todos/1</code></pre>
+
+        <p>Create (the body is parsed as JSON):</p>
+        <pre><code>curl -X POST http://localhost:8080/api/todos \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"learn curl","completed":false}'</code></pre>
+
+        <p>Update — <code>title</code>, <code>completed</code>, or both, partial updates are fine:</p>
+        <pre><code>curl -X PUT http://localhost:8080/api/todos/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"learn curl thoroughly"}'</code></pre>
+
+        <p>Delete (the parser reads bodies for non-GET methods, so send a length):</p>
+        <pre><code>curl -X DELETE http://localhost:8080/api/todos/1 -H 'Content-Length: 0'</code></pre>
+
+        <blockquote>"The same socket code serves both a static site and a JSON API — the only difference is where the request is routed."</blockquote>
+
+        <p>Unmatched <code>/api/</code> paths return <code>404</code> with an HTML error page, and malformed API calls return a JSON error object:</p>
+        <pre><code>{"error":"Bad Request","message":"Field 'title' is required","statusCode":400}</code></pre>
+
+        <footer>
+            <p>Served by a hand-written Java HTTP server. New to the methods? See <a href="/methods.html">HTTP Methods</a>.</p>
+        </footer>
+    </div>
+</body>
+</html>
