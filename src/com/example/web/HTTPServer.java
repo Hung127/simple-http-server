@@ -4,6 +4,8 @@ import com.example.web.configuration.ConfigurationManager;
 import java.io.IOException;
 
 import com.example.web.configuration.Configuration;
+import com.example.web.http.HTTPMethod;
+import com.example.web.utils.APIHandler;
 
 public class HTTPServer {
 
@@ -20,6 +22,14 @@ public class HTTPServer {
 
         try {
             RequestHandler requestHandler = new RequestHandler(config);
+
+            APIHandler api = new APIHandler();
+            requestHandler.register(HTTPMethod.GET, "/api/todos", api::getAllTodos);
+            requestHandler.register(HTTPMethod.GET, "/api/todos/{id}", api::getTodo);
+            requestHandler.register(HTTPMethod.POST, "/api/todos", api::createTodo);
+            requestHandler.register(HTTPMethod.PUT, "/api/todos/{id}", api::updateTodo);
+            requestHandler.register(HTTPMethod.DELETE, "/api/todos/{id}", api::deleteTodo);
+
             Thread requestHandlerThread = new Thread(requestHandler);
             requestHandlerThread.start();
             requestHandlerThread.join();

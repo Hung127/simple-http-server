@@ -3,28 +3,36 @@ package com.example.web;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import com.example.web.configuration.Configuration;
 
+import com.example.web.configuration.Configuration;
+import com.example.web.http.HTTPMethod;
 import com.example.web.http.HTTPWorker;
+import com.example.web.utils.Endpoint;
+import com.example.web.utils.Router;
 import com.example.web.utils.WebRootHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RequestHandler implements Runnable {
-    private final ServerSocket server;
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestHandler.class);
+    private final ServerSocket server;
+    private final Router router;
 
-    private final Configuration config;
-
-    RequestHandler(Configuration config) throws IOException {
+    RequestHandler(Configuration config)
+            throws IOException {
         if (config == null) {
             throw new IllegalArgumentException("Invalid server socket");
         }
-        this.config = config;
-        int port = this.config.getPort();
+        int port = config.getPort();
         LOGGER.debug("Creating socket with port " + port + "...");
+
         this.server = new ServerSocket(port);
+        this.router = new Router(new WebRootHandler(config.getWebRoot()));
+    }
+
+    public void register(HTTPMethod method, String path, Endpoint endpoint) {
+        this.router.register(method, path, endpoint);
     }
 
     @Override
@@ -33,7 +41,7 @@ public class RequestHandler implements Runnable {
         try {
             while (true) {
                 Socket socket = this.server.accept();
-                HTTPWorker sender = new HTTPWorker(socket, new WebRootHandler(config.getWebRoot()));
+                HTTPWorker sender = new HTTPWorker(socket, this.router);
                 Thread thread = new Thread(sender);
                 thread.start();
             }

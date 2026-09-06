@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.example.web.utils.APIHandler;
+import com.example.web.utils.Router;
 import com.example.web.utils.WebRootHandler;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -34,7 +36,11 @@ public class HTTPWorkerTest {
     private String sendRequest(String rawRequest) throws Exception {
         setUpWebRoot();
         WebRootHandler handler = new WebRootHandler(webRootDir.toString());
+        return sendRequest(rawRequest, new Router(handler));
+    }
 
+    private String sendRequest(String rawRequest, Router router) throws Exception {
+        setUpWebRoot();
         ServerSocket serverSocket = new ServerSocket(0);
         int port = serverSocket.getLocalPort();
 
@@ -45,7 +51,7 @@ public class HTTPWorkerTest {
         clientOut.write(rawRequest.getBytes(StandardCharsets.US_ASCII));
         clientOut.flush();
 
-        HTTPWorker worker = new HTTPWorker(serverSocketConn, handler);
+        HTTPWorker worker = new HTTPWorker(serverSocketConn, router);
         worker.run();
 
         InputStream clientIn = clientSocket.getInputStream();
@@ -96,22 +102,71 @@ public class HTTPWorkerTest {
         assertTrue(response.contains("<h1>Home</h1>"));
     }
 
-    @Test
-    void postRequestReturns200WithHelloBody() throws Exception {
-        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nname");
-
-        assertTrue(response.startsWith("HTTP/1.1 200 Success\r\n"));
-        assertTrue(response.contains("Content-Type:text/html; charset=UTF-8\r\n"));
-        assertTrue(response.contains("Connection:close\r\n"));
-        assertTrue(response.contains("Hello"));
+    private Router apiRouter() throws Exception {
+        setUpWebRoot();
+        Router router = new Router(new WebRootHandler(webRootDir.toString()));
+        APIHandler api = new APIHandler();
+        router.register(HTTPMethod.GET, "/api/todos", api::getAllTodos);
+        router.register(HTTPMethod.POST, "/api/todos", api::createTodo);
+        router.register(HTTPMethod.PUT, "/api/todos/{id}", api::updateTodo);
+        router.register(HTTPMethod.DELETE, "/api/todos/{id}", api::deleteTodo);
+        return router;
     }
 
     @Test
-    void postRequestBodyParsed() throws Exception {
-        String response = sendRequest("POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nname");
+    void getApiTodosReturnsJsonBody() throws Exception {
+        String response = sendRequest("GET /api/todos HTTP/1.1\r\nHost: localhost\r\n\r\n", apiRouter());
 
-        String body = response.split("\r\n\r\n", 2)[1];
-        assertEquals("Hello", body);
+        assertTrue(response.startsWith("HTTP/1.1 200 Success\r\n"));
+        assertTrue(response.contains("Content-Type:text/json\r\n"));
+        assertTrue(response.contains("\"learn http\""));
+    }
+
+    @Test
+    void postApiTodoCreatesTodo() throws Exception {
+        String body = "{\"title\":\"worker\"}";
+        String response = sendRequest("POST /api/todos HTTP/1.1\r\nHost: localhost\r\nContent-Length: "
+                + body.length() + "\r\n\r\n" + body, apiRouter());
+
+        assertTrue(response.startsWith("HTTP/1.1 201 Created\r\n"));
+        assertTrue(response.contains("Content-Type:text/json\r\n"));
+        assertTrue(response.contains("\"worker\""));
+    }
+
+    @Test
+    void putApiTodoUpdatesTodo() throws Exception {
+        String body = "{\"title\":\"updated via put\"}";
+        String response = sendRequest("PUT /api/todos/1 HTTP/1.1\r\nHost: localhost\r\nContent-Length: "
+                + body.length() + "\r\n\r\n" + body, apiRouter());
+
+        assertTrue(response.startsWith("HTTP/1.1 200 Success\r\n"));
+        assertTrue(response.contains("Content-Type:text/json\r\n"));
+        assertTrue(response.contains("\"updated via put\""));
+    }
+
+    @Test
+    void deleteApiTodoRemovesTodo() throws Exception {
+        Router router = apiRouter();
+
+        String response = sendRequest("DELETE /api/todos/1 HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n",
+                router);
+
+        assertTrue(response.startsWith("HTTP/1.1 200 Success\r\n"));
+        assertTrue(response.contains("Content-Type:text/json\r\n"));
+
+        String after = sendRequest("GET /api/todos/1 HTTP/1.1\r\nHost: localhost\r\n\r\n", router);
+        assertTrue(after.startsWith("HTTP/1.1 404 Not Found\r\n"));
+    }
+
+    @Test
+    void unregisteredApiRouteReturns404WithErrorBody() throws Exception {
+        String response = sendRequest("GET /api/nope HTTP/1.1\r\nHost: localhost\r\n\r\n", apiRouter());
+
+        assertTrue(response.startsWith("HTTP/1.1 404 Not Found\r\n"));
+        assertTrue(response.contains("Content-Type:text/html; charset=UTF-8\r\n"));
+        assertTrue(response.contains("Connection:close\r\n"));
+        assertTrue(response.contains("Content-Length:"));
+        assertTrue(response.contains("<h1>404 Not Found</h1>"));
     }
 
     @Test
