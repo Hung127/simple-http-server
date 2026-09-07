@@ -2,13 +2,13 @@
 
 A simple HTTP server built from scratch **without Maven, Gradle, or Spring** — it compiles with plain `javac`; external dependencies (Jackson, JUnit, SLF4J/Logback) are kept as jars in `lib/`.
 
-It is intended as a hands-on learning project for understanding how an HTTP server really works: the server is written by hand on a raw `ServerSocket`, one thread per connection, instead of using the JDK's built-in `HttpServer`.
+It is intended as a hands-on learning project for understanding how an HTTP server really works: the server is written by hand on a raw `ServerSocket`, with a hand-written bounded thread pool instead of a thread per connection — no JDK `HttpServer` anywhere.
 
 ## Modules
 
 | Module | Package | Status |
 |---|---|---|
-| Web Server | `com.example.web` | Working: accept loop, thread-per-connection, config loading, HTTP parsing, response building, static file serving (with correct MIME types), request-body parsing |
+| Web Server | `com.example.web` | Working: accept loop, hand-written thread pool, config loading, HTTP parsing, response building, static file serving (with correct MIME types), request-body parsing |
 | REST API | `com.example.api` + `com.example.web.utils` | Working: Router (method + path + path variables), JSON CRUD todo endpoints backed by an in-memory store |
 | JSON | `com.example.json` | Thin wrapper around Jackson (parse / stringify), used for config loading and the API responses |
 
@@ -36,7 +36,7 @@ simple-http-server/
 │   │       │   └── Json.java           # Jackson ObjectMapper wrapper (parse/stringify)
 │   │       └── web/
 │   │           ├── HTTPServer.java     # entry point: loads config, opens ServerSocket, registers API routes
-│   │           ├── RequestHandler.java # accept loop, one thread per connection
+│   │           ├── RequestHandler.java # accept loop, submits workers to the thread pool
 │   │           ├── configuration/      # config.json loading (ConfigurationManager, Configuration, HTTPConfigurationException)
 │   │           ├── http/
 │   │           │   ├── HTTPMessage.java            # shared message base (body + header map)
@@ -46,14 +46,15 @@ simple-http-server/
 │   │           │   ├── HTTPMethod.java             # enum GET / HEAD / POST / PUT / DELETE
 │   │           │   ├── HTTPVersion.java            # enum + compatibility resolution
 │   │           │   ├── HTTPStatusCode.java         # status code enum
-│   │           │   ├── HTTPWorker.java             # per-connection response thread (parses, routes, writes)
+│   │           │   ├── HTTPWorker.java             # per-connection worker (parses, routes, writes)
 │   │           │   └── exceptions: HTTPParsingException, BadHTTPHeaderException, BadHTTPVersionException
-│   │           └── utils/              # routing + static file serving
+│   │           └── utils/              # routing, static file serving, thread pool
 │   │               ├── Router.java                 # dispatch (method, path) -> endpoint, captures {id}
 │   │               ├── Route.java                  # one registered (method, path pattern, Endpoint)
 │   │               ├── Endpoint.java               # handler contract: handle(variables, json)
 │   │               ├── APIHandler.java             # /api/* endpoints echoed by the Router
 │   │               ├── WebRootHandler.java         # serves files safely from webRoot + MIME types
+│   │               ├── MyExecutorService.java      # hand-written bounded thread pool (start/addJob/stop)
 │   │               └── BadRootPathException.java
 ├── test/
 │   └── com/
@@ -71,7 +72,8 @@ simple-http-server/
 │               └── utils/
 │                   ├── WebRootHandlerTest.java
 │                   ├── RouterTest.java
-│                   └── APIHandlerTest.java
+│                   ├── APIHandlerTest.java
+│                   └── MyExecutorServiceTest.java
 ├── lib/                                # Jackson, JUnit, SLF4J/Logback jars
 └── out/                                # compiled .class files (git-ignored)
 ```
@@ -85,8 +87,12 @@ simple-http-server/
 The server is written by hand on raw sockets — no framework, not even `com.sun.net.httpserver`:
 
 - `HTTPServer` (entry point) loads `src/com/resources/config.json` via `ConfigurationManager`/`Json`, registers the `/api/*` todo routes on a shared `Router`, then opens a `ServerSocket` on the configured port.
-- `RequestHandler.run()` accepts connections in a loop and hands each socket to an `HTTPWorker` on its own thread.
+- `RequestHandler.run()` starts a bounded thread pool (`MyExecutorService`) and, for each accepted socket, submits an `HTTPWorker` to the pool — no thread is spawned per connection.
 - `HTTPWorker` parses the request with `HTTPParser`, routes `/api/*` targets through the `Router` (static targets to `WebRootHandler`), builds an `HTTPResponse` (status line, default headers, body), and writes it back over the socket.
+
+### Concurrency
+
+Accepting many requests at once is what motivated the thread pool: a burst of connections should not spawn unbounded threads. `MyExecutorService` is a hand-written pool — a `LinkedBlockingQueue<Runnable>` plus N worker threads, started with `start()` and drained on `stop()`. Each `HTTPWorker` runs on a pool thread, and the API's `TodoStore` is a `ConcurrentHashMap` whose ids come from an `AtomicLong`, so parallel `POST`s can never hand out the same id (same idea behind Spring's thread-per-request + @GeneratedValue sequences).
 
 ### How a request is handled
 
@@ -124,9 +130,9 @@ curl -X PUT http://localhost:8080/api/todos/1 -H 'Content-Type: application/json
 curl -X DELETE http://localhost:8080/api/todos/1 -H 'Content-Length: 0'
 ```
 
-The full learning path — request bodies, routing, JSON APIs, then concurrency and a browser frontend — lives in `STUDY_PLAN.md`.
+The full learning path — request bodies, routing, JSON APIs, concurrency, then a browser frontend — lives in `STUDY_PLAN.md`.
 
-Roadmap: routing and the JSON REST API are done; next comes a browser frontend, thread pooling (`ExecutorService`), keep-alive connections, and persistent storage.
+Roadmap: routing, the JSON REST API, and the thread pool are done; next comes a browser frontend, keep-alive connections, and persistent storage.
 
 ## Compilation & Running
 
@@ -179,7 +185,7 @@ java -jar lib/junit-platform-console-standalone-6.1.3.jar execute \
   --select-class com.example.web.http.HTTPResponseTest
 ```
 
-> Note: `HTTPWorkerTest` spins up real socket pairs against a temp web root, so the full suite exercises the server wire end to end.
+> Note: `HTTPWorkerTest` spins up real socket pairs against a temp web root, so the full suite exercises the server wire end to end. `MyExecutorServiceTest` and the concurrency cases in `TodoStoreTest` cover pool lifecycle/parallel behavior and unique ids under load.
 
 ## Requirements
 

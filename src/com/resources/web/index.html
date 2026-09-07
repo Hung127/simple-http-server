@@ -29,7 +29,7 @@
         </figure>
 
         <h2>From Socket to Request</h2>
-        <p>When a client connects, the server accepts the socket and hands it to a worker thread. Our <code>HTTPParser</code> reads the request line — <code>GET / HTTP/1.1</code> — then tears it apart into a method, a target path, and a version. Headers follow on subsequent lines until a blank line signals the end.</p>
+        <p>When a client connects, the server accepts the socket and hands it to a worker thread from a bounded pool. Our <code>HTTPParser</code> reads the request line — <code>GET / HTTP/1.1</code> — then tears it apart into a method, a target path, and a version. Headers follow on subsequent lines until a blank line signals the end.</p>
 
         <blockquote>"The beauty of HTTP is that it is a text protocol: you can literally see the request on the wire."</blockquote>
 
