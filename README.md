@@ -130,9 +130,9 @@ curl -X PUT http://localhost:8080/api/todos/1 -H 'Content-Type: application/json
 curl -X DELETE http://localhost:8080/api/todos/1 -H 'Content-Length: 0'
 ```
 
-The full learning path — request bodies, routing, JSON APIs, concurrency, then a browser frontend — lives in `STUDY_PLAN.md`.
+The full learning path — request bodies, routing, JSON APIs, concurrency — lives in `STUDY_PLAN.md`.
 
-Roadmap: routing, the JSON REST API, and the thread pool are done; next comes a browser frontend, keep-alive connections, and persistent storage.
+Roadmap: routing, the JSON REST API, and the thread pool are all done. Keep-alive connections and request logging remain as optional polish.
 
 ## Compilation & Running
 

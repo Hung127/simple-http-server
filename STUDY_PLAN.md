@@ -17,7 +17,6 @@ static files. The remaining layers to learn are:
 2. **Routing** — mapping `(method, path)` to a handler, with path variables like `/todos/{id}`
 3. **JSON APIs** — producing and consuming JSON responses (status discipline: 200/201/204/400/404/409)
 4. **Concurrency** — a server handling many requests at once (thread pools)
-5. **A browser frontend** — `fetch()` against your API
 
 Learning these by hand is exactly the lens Spring Boot uses: `@RequestBody`,
 `@RequestMapping`+`@PathVariable`, `@ResponseBody`, `@ResponseStatus`, thread-per-request.
@@ -178,19 +177,6 @@ Start with a single `Router` used by `ApiHandler`; extend flow as needed.
 
 ---
 
-## Phase E — Browser frontend (optional but rewarding)
-
-**Goal:** a single-page UI using `fetch()` against your API.
-
-Powering this with a Todo UI is simplest — skip the old article pages if you want.
-
-- `fetch(url).then(r => r.json())`
-- `fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(...)})`
-- Render with `document.createElement` / `textContent` (avoid `innerHTML` with user input — XSS habit).
-- Poll with `setInterval(loadTodos, 2000)`.
-
----
-
 ## Phase F — Spring Boot mapping (the payoff)
 
 Once Phases B–D click, this list should feel like "I built that by hand":
@@ -238,8 +224,7 @@ java -jar lib/junit-platform-console-standalone-6.1.3.jar execute \
 
 ## Milestone checklist
 
-- [ ] Phase B: methods + body parsing + 413 → `POST`/`DELETE` accepted
-- [ ] Phase C: `/api/todos` CRUD via curl with 200/201/204/400/404/405
-- [ ] Phase D: executor pool + unique `AtomicLong` ids under parallel load
-- [ ] Phase E: a browser UI hitting the API (optional)
+- [x] Phase B: methods + body parsing + 413 → `POST`/`DELETE` accepted
+- [x] Phase C: `/api/todos` CRUD via curl with the implemented status discipline
+- [x] Phase D: executor pool + unique `AtomicLong` ids under parallel load
 - [ ] Phase F: I can name the Spring equivalent of each piece I built
