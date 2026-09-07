@@ -7,7 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,5 +99,76 @@ class TodoStoreTest {
         Todo created = store.add(new Todo(0, "here", false));
         assertTrue(store.contains(created.getId()));
         assertFalse(store.contains(999999L));
+    }
+
+    @Test
+    void parallelAddsProduceUniqueIds() throws Exception {
+        int threadCount = 16;
+        int perThread = 25;
+        Set<Long> ids = ConcurrentHashMap.newKeySet();
+        AtomicInteger added = new AtomicInteger(0);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threadCount);
+
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        try {
+            for (int t = 0; t < threadCount; t++) {
+                pool.submit(() -> {
+                    try {
+                        start.await();
+                        for (int i = 0; i < perThread; i++) {
+                            Todo created = store.add(new Todo(0, "t", false));
+                            ids.add(created.getId());
+                            added.incrementAndGet();
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            start.countDown();
+            assertTrue(done.await(10, TimeUnit.SECONDS));
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertEquals(threadCount * perThread, added.get());
+        assertEquals(threadCount * perThread, ids.size());
+    }
+
+    @Test
+    void parallelAddsAllPersist() throws Exception {
+        int threadCount = 8;
+        int perThread = 20;
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threadCount);
+
+        int initial = store.size();
+
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        try {
+            for (int t = 0; t < threadCount; t++) {
+                pool.submit(() -> {
+                    try {
+                        start.await();
+                        for (int i = 0; i < perThread; i++) {
+                            store.add(new Todo(0, "t", false));
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            start.countDown();
+            assertTrue(done.await(10, TimeUnit.SECONDS));
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertEquals(initial + threadCount * perThread, store.size());
     }
 }
