@@ -21,7 +21,7 @@ public class HTTPServer {
         Configuration config = configManager.getCurrentConfiguration();
 
         try {
-            RequestHandler requestHandler = new RequestHandler(config);
+            RequestHandler requestHandler = new RequestHandler(config, 3);
 
             APIHandler api = new APIHandler();
             requestHandler.register(HTTPMethod.GET, "/api/todos", api::getAllTodos);
